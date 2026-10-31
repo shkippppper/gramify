@@ -16,6 +16,8 @@ const schema = z.object({
   /** Optional: restrict sign-in to these Google Workspace domains (comma-separated). */
   ALLOWED_GOOGLE_DOMAIN: z.string().default(''),
   DEV_LOGIN: bool,
+  /** Shown on the privacy policy and terms pages. */
+  CONTACT_EMAIL: z.string().default(''),
   /** Directory with the built SPA (apps/web/dist) to serve in production. */
   STATIC_DIR: z.string().optional(),
 });

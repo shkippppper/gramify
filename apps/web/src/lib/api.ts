@@ -35,6 +35,7 @@ export interface AppConfig {
   name: string;
   google: boolean;
   devLogin: boolean;
+  contactEmail: string | null;
 }
 
 export const api = {

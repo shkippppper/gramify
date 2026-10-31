@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { BRAND } from '@gramify/shared';
 import { useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ThemeToggle } from '../components/TopBar';
 import { Button, Input, Spinner } from '../components/ui';
 import { api } from '../lib/api';
@@ -131,6 +131,17 @@ export function LoginPage() {
           </p>
         )}
         {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
+        <p className="mt-6 text-center text-xs text-muted">
+          By continuing you agree to the{' '}
+          <Link to="/terms" className="underline hover:text-accent">
+            terms
+          </Link>{' '}
+          and{' '}
+          <Link to="/privacy" className="underline hover:text-accent">
+            privacy policy
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

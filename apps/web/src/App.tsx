@@ -16,6 +16,10 @@ const DiagramViewPage = lazy(() =>
 const PlaygroundPage = lazy(() =>
   import('./pages/PlaygroundPage').then((m) => ({ default: m.PlaygroundPage })),
 );
+const PrivacyPage = lazy(() =>
+  import('./pages/LegalPage').then((m) => ({ default: m.PrivacyPage })),
+);
+const TermsPage = lazy(() => import('./pages/LegalPage').then((m) => ({ default: m.TermsPage })));
 const PlaygroundViewPage = lazy(() =>
   import('./pages/ViewPage').then((m) => ({ default: m.PlaygroundViewPage })),
 );
@@ -25,6 +29,8 @@ export function App() {
     <Suspense fallback={<FullPageSpinner />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/play" element={<PlaygroundPage />} />
         <Route path="/play/view" element={<PlaygroundViewPage />} />
         <Route

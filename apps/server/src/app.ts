@@ -35,7 +35,12 @@ export async function createServer(port = env.PORT) {
     return c.json({ ok: true });
   });
   app.get('/api/config', (c) =>
-    c.json({ name: BRAND.name, google: googleEnabled, devLogin: devLoginEnabled }),
+    c.json({
+      name: BRAND.name,
+      google: googleEnabled,
+      devLogin: devLoginEnabled,
+      contactEmail: env.CONTACT_EMAIL || null,
+    }),
   );
   app.on(['GET', 'POST'], '/api/auth/*', (c) => getAuth().handler(c.req.raw));
   app.get('/api/me', async (c) => {

@@ -10,7 +10,15 @@ empty library: **every board is private to the person who created it** until the
 **Share → People with access**.
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project. A personal Google account is fine.
-2. Open **Google Auth Platform → Branding** and fill in the app name (e.g. "Gramify") and the support email.
+2. Open **Google Auth Platform → Branding** and fill in:
+   - **App name:** `Gramify`
+   - **User support email:** your email
+   - **App logo:** leave it empty. Uploading a logo forces a Google verification review.
+   - **Application home page:** `https://<your-domain>`
+   - **Application privacy policy link:** `https://<your-domain>/privacy` (built into the app)
+   - **Application terms of service link:** `https://<your-domain>/terms` (built into the app)
+   - **Authorized domains:** `<your-domain>`, e.g. `gramify.up.railway.app`
+   - **Developer contact information:** your email
 3. Open **Audience**:
    - Set the user type to **External**.
    - Click **Publish app** so the status is **In production**. The app only asks for basic profile and
@@ -63,7 +71,7 @@ claim from Google.
    | `GOOGLE_CLIENT_SECRET`  | from step 1                                                                                 |
    | `ALLOWED_GOOGLE_DOMAIN` | _optional_: only if you want to restrict sign-in to a Google Workspace domain               |
 
-   Railway sets `PORT` for you. **Do not** set `DEV_LOGIN` in production; it is ignored there anyway.
+   Optionally add `CONTACT_EMAIL` (shown on the privacy and terms pages). Railway sets `PORT` for you. **Do not** set `DEV_LOGIN` in production; it is ignored there anyway.
 
 5. Check that **Settings → Deploy → Serverless / App Sleeping** is **off**, and that replicas is **1**.
    Live collaboration keeps open documents in the server's memory, so the service has to stay awake
