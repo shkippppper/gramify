@@ -1,4 +1,4 @@
-import { deserializeState } from '@tidepool/shared';
+import { deserializeState } from '@gramify/shared';
 
 /** Extract diagram code from a pasted mermaid.live link or raw mermaid code. */
 export function parseImport(text: string): { code: string; config: string } {

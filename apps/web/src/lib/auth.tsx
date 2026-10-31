@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PublicUser } from '@tidepool/shared';
+import type { PublicUser } from '@gramify/shared';
 import { createAuthClient } from 'better-auth/react';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';

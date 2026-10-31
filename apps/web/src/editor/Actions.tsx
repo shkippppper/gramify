@@ -1,4 +1,4 @@
-import { serializeState } from '@tidepool/shared';
+import { serializeState } from '@gramify/shared';
 import { Clipboard, Code2, ExternalLink, FileCode, FileImage, Image } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';

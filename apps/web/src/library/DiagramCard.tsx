@@ -1,5 +1,5 @@
-import type { DiagramSummary, Folder, PublicUser } from '@tidepool/shared';
-import { colorForId } from '@tidepool/shared';
+import type { DiagramSummary, Folder, PublicUser } from '@gramify/shared';
+import { colorForId } from '@gramify/shared';
 import clsx from 'clsx';
 import {
   Copy,

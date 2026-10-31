@@ -1,4 +1,4 @@
-import type { PresenceState } from '@tidepool/shared';
+import type { PresenceState } from '@gramify/shared';
 import { useEffect, useRef } from 'react';
 import { MonacoBinding } from 'y-monaco';
 import * as Y from 'yjs';
@@ -142,10 +142,10 @@ export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onRea
     if (!models) return;
     const set = (model: monaco.editor.ITextModel, marker: EditorMarker | null) => {
       if (!marker || marker.line < 1 || marker.line > model.getLineCount()) {
-        monaco.editor.setModelMarkers(model, 'tidepool', []);
+        monaco.editor.setModelMarkers(model, 'gramify', []);
         return;
       }
-      monaco.editor.setModelMarkers(model, 'tidepool', [
+      monaco.editor.setModelMarkers(model, 'gramify', [
         {
           severity: monaco.MarkerSeverity.Error,
           message: marker.message,

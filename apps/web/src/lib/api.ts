@@ -5,7 +5,7 @@ import type {
   Folder,
   MemberRole,
   PublicUser,
-} from '@tidepool/shared';
+} from '@gramify/shared';
 
 export class ApiError extends Error {
   status: number;

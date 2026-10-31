@@ -1,4 +1,4 @@
-import type { PresenceState } from '@tidepool/shared';
+import type { PresenceState } from '@gramify/shared';
 import type { DiagramSession } from './session';
 import { remotePeers } from './useCollab';
 import { useAwarenessStates } from './session';

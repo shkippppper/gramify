@@ -1,4 +1,4 @@
-import { deserializeState, serializeState, DEFAULT_CODE, DEFAULT_CONFIG } from '@tidepool/shared';
+import { deserializeState, serializeState, DEFAULT_CODE, DEFAULT_CONFIG } from '@gramify/shared';
 import { Link2 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';

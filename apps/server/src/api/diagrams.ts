@@ -6,7 +6,7 @@ import {
   type DiagramRole,
   type DiagramSummary,
   type PublicUser,
-} from '@tidepool/shared';
+} from '@gramify/shared';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { sql, type Selectable } from 'kysely';

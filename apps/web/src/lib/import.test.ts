@@ -1,4 +1,4 @@
-import { serializeState } from '@tidepool/shared';
+import { serializeState } from '@gramify/shared';
 import { describe, expect, it } from 'vitest';
 import { parseFile, parseImport } from './import';
 

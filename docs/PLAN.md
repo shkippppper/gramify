@@ -1,6 +1,6 @@
-# Tidepool: a collaborative Mermaid editor for the team
+# Gramify: a collaborative Mermaid editor for the team
 
-> Working name **Tidepool**. Change it in one place: `packages/shared/src/brand.ts`.
+> Product name **Gramify**. To rename, change it in one place: `packages/shared/src/brand.ts`.
 > This is our own product. It uses the open-source `mermaid` library (MIT). It is not affiliated with Mermaid Chart, and it carries none of their branding.
 
 ## 1. Goal

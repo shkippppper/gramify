@@ -10,7 +10,7 @@ function LiveView({ session }: { session: DiagramSession }) {
   const config = useYText(session.config);
   const title = useYMapValue<string>(session.meta, 'title');
   useEffect(() => {
-    if (title) document.title = `${title} · Tidepool`;
+    if (title) document.title = `${title} · Gramify`;
   }, [title]);
   return <DiagramView code={code} config={config} />;
 }

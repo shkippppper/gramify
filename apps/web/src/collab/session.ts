@@ -1,4 +1,4 @@
-import { DEFAULT_CODE, DEFAULT_CONFIG, YDOC } from '@tidepool/shared';
+import { DEFAULT_CODE, DEFAULT_CONFIG, YDOC } from '@gramify/shared';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import * as Y from 'yjs';

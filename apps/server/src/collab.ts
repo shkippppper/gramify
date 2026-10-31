@@ -1,6 +1,6 @@
 import { Database as DatabaseExtension } from '@hocuspocus/extension-database';
 import { Hocuspocus, type onAuthenticatePayload, type onChangePayload } from '@hocuspocus/server';
-import { diagramIdFromDocName, docNameFor, YDOC, type PublicUser } from '@tidepool/shared';
+import { diagramIdFromDocName, docNameFor, YDOC, type PublicUser } from '@gramify/shared';
 import { sql } from 'kysely';
 import * as Y from 'yjs';
 import type { SessionUser } from './auth.ts';
@@ -127,7 +127,7 @@ async function maybeAutoSnapshot(
 }
 
 export const hocuspocus = new Hocuspocus<CollabContext>({
-  name: 'tidepool',
+  name: 'gramify',
   // Persist at most every 2s while typing, and at least every 10s.
   debounce: 2000,
   maxDebounce: 10000,

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const WEB_PORT = 5174;
 const API_PORT = 3101;
 const DATABASE_URL =
-  process.env.E2E_DATABASE_URL ?? 'postgres://postgres@localhost:5432/tidepool_e2e';
+  process.env.E2E_DATABASE_URL ?? 'postgres://postgres@localhost:5432/gramify_e2e';
 
 export default defineConfig({
   testDir: 'e2e',

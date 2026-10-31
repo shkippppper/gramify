@@ -1,5 +1,5 @@
 import { HocuspocusProvider } from '@hocuspocus/provider';
-import { colorForId, docNameFor, type PresenceState, type PublicUser } from '@tidepool/shared';
+import { colorForId, docNameFor, type PresenceState, type PublicUser } from '@gramify/shared';
 import { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 import { sessionFromDoc, type DiagramSession } from './session';

@@ -1,4 +1,4 @@
-import { YDOC, type DiagramVersion } from '@tidepool/shared';
+import { YDOC, type DiagramVersion } from '@gramify/shared';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramRole, DiagramSummary, MemberRole } from '@tidepool/shared';
-import { colorForId } from '@tidepool/shared';
+import type { DiagramRole, DiagramSummary, MemberRole } from '@gramify/shared';
+import { colorForId } from '@gramify/shared';
 import { Check, Eye, Link2, LogOut, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';

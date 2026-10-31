@@ -1,4 +1,4 @@
-import { BRAND } from '@tidepool/shared';
+import { BRAND } from '@gramify/shared';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';

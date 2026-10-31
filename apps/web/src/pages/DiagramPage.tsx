@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramRole, DiagramVersion, PresenceState } from '@tidepool/shared';
-import { serializeState } from '@tidepool/shared';
+import type { DiagramRole, DiagramVersion, PresenceState } from '@gramify/shared';
+import { serializeState } from '@gramify/shared';
 import clsx from 'clsx';
 import { ChevronRight, Eye, History, Link2, Share2, Square, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -70,7 +70,7 @@ function TitleInput({ session, fallback }: { session: DiagramSession; fallback: 
   const title = live ?? fallback;
   const [draft, setDraft] = useState<string | null>(null);
   useEffect(() => {
-    document.title = `${title} · Tidepool`;
+    document.title = `${title} · Gramify`;
   }, [title]);
   const commit = () => {
     const v = draft?.trim();

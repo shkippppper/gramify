@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramRole, DiagramVersion } from '@tidepool/shared';
-import { colorForId } from '@tidepool/shared';
+import type { DiagramRole, DiagramVersion } from '@gramify/shared';
+import { colorForId } from '@gramify/shared';
 import clsx from 'clsx';
 import { diffLines } from 'diff';
 import {

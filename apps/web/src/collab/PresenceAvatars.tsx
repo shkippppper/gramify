@@ -1,4 +1,4 @@
-import type { PresenceState } from '@tidepool/shared';
+import type { PresenceState } from '@gramify/shared';
 import clsx from 'clsx';
 import { Avatar } from '../components/ui';
 import { useAwarenessStates, type DiagramSession } from './session';

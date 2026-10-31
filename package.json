@@ -1,5 +1,5 @@
 {
-  "name": "tidepool",
+  "name": "gramify",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.0",

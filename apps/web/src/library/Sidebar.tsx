@@ -1,4 +1,4 @@
-import type { Folder } from '@tidepool/shared';
+import type { Folder } from '@gramify/shared';
 import clsx from 'clsx';
 import {
   ChevronRight,
@@ -19,7 +19,7 @@ import { useLocalState } from '../lib/useLocalState';
 import { Button, Dialog, IconButton, Input, Menu } from '../components/ui';
 import { useLibraryMutation } from './useLibrary';
 
-export const DND_TYPE = 'application/x-tidepool-diagram';
+export const DND_TYPE = 'application/x-gramify-diagram';
 
 interface Props {
   view: LibraryView;

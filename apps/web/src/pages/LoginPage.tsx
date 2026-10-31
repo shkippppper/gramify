@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { BRAND } from '@tidepool/shared';
+import { BRAND } from '@gramify/shared';
 import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ThemeToggle } from '../components/TopBar';

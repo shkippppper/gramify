@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/web apps/web
-RUN pnpm --filter @tidepool/web build
+RUN pnpm --filter @gramify/web build
 
 # ---- runtime: production deps for the server only ---------------------------
 FROM base AS runtime
@@ -23,7 +23,7 @@ ENV NODE_ENV=production STATIC_DIR=/app/apps/web/dist PORT=3000
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
-RUN pnpm install --frozen-lockfile --prod --filter @tidepool/server...
+RUN pnpm install --frozen-lockfile --prod --filter @gramify/server...
 COPY packages/shared/src packages/shared/src
 COPY apps/server/src apps/server/src
 COPY --from=build /app/apps/web/dist apps/web/dist

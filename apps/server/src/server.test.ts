@@ -1,5 +1,5 @@
 import { HocuspocusProvider, HocuspocusProviderWebsocket } from '@hocuspocus/provider';
-import { docNameFor, YDOC } from '@tidepool/shared';
+import { docNameFor, YDOC } from '@gramify/shared';
 import { sql } from 'kysely';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

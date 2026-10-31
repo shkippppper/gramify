@@ -1,4 +1,4 @@
-import type { DiagramRole } from '@tidepool/shared';
+import type { DiagramRole } from '@gramify/shared';
 import { HTTPException } from 'hono/http-exception';
 import { sql } from 'kysely';
 import type { SessionUser } from './auth.ts';

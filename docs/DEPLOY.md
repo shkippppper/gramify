@@ -1,6 +1,6 @@
-# Deploying Tidepool to Railway
+# Deploying Gramify to Railway
 
-Tidepool is a single Docker service plus a Postgres database. On Railway's Hobby plan this
+Gramify is a single Docker service plus a Postgres database. On Railway's Hobby plan this
 costs about **$5–8 per month** for a team of 10–50 people.
 
 ## 1. Create the Google OAuth client (about 5 minutes)
@@ -10,7 +10,7 @@ empty library: **every board is private to the person who created it** until the
 **Share → People with access**.
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project. A personal Google account is fine.
-2. Open **Google Auth Platform → Branding** and fill in the app name (e.g. "Tidepool") and the support email.
+2. Open **Google Auth Platform → Branding** and fill in the app name (e.g. "Gramify") and the support email.
 3. Open **Audience**:
    - Set the user type to **External**.
    - Click **Publish app** so the status is **In production**. The app only asks for basic profile and
@@ -27,7 +27,7 @@ empty library: **every board is private to the person who created it** until the
 5. Copy the **Client ID** and **Client secret**.
 
 If your company _does_ use Google Workspace and you want only company accounts to sign in, set
-`ALLOWED_GOOGLE_DOMAIN=yourcompany.com`. Tidepool then also verifies the signed `hd` (hosted domain)
+`ALLOWED_GOOGLE_DOMAIN=yourcompany.com`. Gramify then also verifies the signed `hd` (hosted domain)
 claim from Google.
 
 ### Who can see what
@@ -76,7 +76,7 @@ Now go back to Google Cloud and fill in the origin and redirect URI from step 1.
 
 - **Backups:** the diagrams live in Postgres (the `diagram` and `diagram_version` tables). Use Railway's
   database backups if your plan includes them, or run a scheduled
-  `pg_dump "$DATABASE_URL" > tidepool-$(date +%F).sql`.
+  `pg_dump "$DATABASE_URL" > gramify-$(date +%F).sql`.
 - **Updates:** push to the deployed branch and Railway rebuilds. During a redeploy, connected editors
   show "Reconnecting…" for a few seconds. Their edits are kept locally and merge when they reconnect.
 - **Logs:** the service logs migrations, startup, and pruning of old automatic versions (hourly).

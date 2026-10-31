@@ -1,4 +1,4 @@
-# Tidepool
+# Gramify
 
 A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor for the team.
 
@@ -58,8 +58,8 @@ multiplayer in action. The scratchpad at `/play` works without signing in.
 | ---------------- | ------------------------------------------------------------------------------------------------------- |
 | `pnpm dev`       | Vite (5173) and the API/collab server (3001) with reload                                                |
 | `pnpm typecheck` | TypeScript across all packages                                                                          |
-| `pnpm test`      | Unit tests, plus server integration tests (needs the `tidepool_test` database)                          |
-| `pnpm e2e`       | Playwright: two-user collaboration, history, library and playground (needs the `tidepool_e2e` database) |
+| `pnpm test`      | Unit tests, plus server integration tests (needs the `gramify_test` database)                          |
+| `pnpm e2e`       | Playwright: two-user collaboration, history, library and playground (needs the `gramify_e2e` database) |
 | `pnpm build`     | Production build of the web app                                                                         |
 
 ## Layout

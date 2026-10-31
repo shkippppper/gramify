@@ -1,4 +1,4 @@
-import { BRAND } from '@tidepool/shared';
+import { BRAND } from '@gramify/shared';
 import { createServer } from './app.ts';
 import { db } from './db/index.ts';
 import { isProd } from './env.ts';

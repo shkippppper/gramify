@@ -1,4 +1,4 @@
-import { deserializeState } from '@tidepool/shared';
+import { deserializeState } from '@gramify/shared';
 import { useMemo } from 'react';
 import { useTheme } from '../lib/theme';
 import { Preview } from '../render/Preview';

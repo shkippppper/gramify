@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import type { DiagramSummary, Folder } from '@tidepool/shared';
+import type { DiagramSummary, Folder } from '@gramify/shared';
 import {
   ChevronDown,
   FilePlus2,

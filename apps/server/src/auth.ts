@@ -42,7 +42,7 @@ const devLogin = (): BetterAuthPlugin => ({
 });
 
 export const authOptions = {
-  appName: 'Tidepool',
+  appName: 'Gramify',
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: pool,
