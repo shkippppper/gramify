@@ -36,16 +36,18 @@ export interface DiagramVersion {
   code: string;
   config: string;
   createdBy: PublicUser | null;
+  /** Users who edited between the previous version and this one. */
+  contributors: PublicUser[];
   createdAt: string;
 }
 
 /** Awareness state broadcast by every client. */
 export interface PresenceState {
   user: { id: string; name: string; email: string; image: string | null; color: string };
-  /** Pointer position in SVG user space, or null when outside the preview. */
+  /** Pointer position in normalized diagram coordinates (0..1), or null when outside the preview. */
   pointer: { x: number; y: number } | null;
   /** Which editor tab the user is focused in. */
   tab: 'code' | 'config';
-  /** Current pan/zoom of their preview, used for follow mode. */
-  view: { pan: { x: number; y: number }; zoom: number } | null;
+  /** What part of the diagram they're looking at (normalized center + scale), for follow mode. */
+  view: { cx: number; cy: number; scale: number } | null;
 }

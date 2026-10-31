@@ -1,0 +1,33 @@
+{
+  "name": "@tidepool/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch --experimental-strip-types src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts",
+    "build": "echo 'server runs from source via type stripping'",
+    "migrate": "node --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-database": "4.8.0",
+    "@hocuspocus/server": "4.8.0",
+    "@hono/node-server": "2.1.5",
+    "@tidepool/shared": "workspace:*",
+    "better-auth": "1.7.14",
+    "hono": "4.13.14",
+    "kysely": "0.29.7",
+    "pg": "8.23.1",
+    "ws": "8.22.1",
+    "yjs": "13.6.33",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/pg": "^8",
+    "@types/ws": "8.18.2",
+    "vitest": "5.0.5"
+  }
+}

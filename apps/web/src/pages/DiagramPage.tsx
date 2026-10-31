@@ -1,0 +1,349 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { DiagramVersion, PresenceState } from '@tidepool/shared';
+import { serializeState } from '@tidepool/shared';
+import clsx from 'clsx';
+import { ChevronRight, Eye, History, Link2, Share2, Square } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router';
+import { toast } from 'sonner';
+import * as Y from 'yjs';
+import { PointerLayer } from '../collab/PointerLayer';
+import { PresenceAvatars } from '../collab/PresenceAvatars';
+import { RemoteCursorStyles } from '../collab/RemoteCursorStyles';
+import { useYMapValue, useYText, type DiagramSession } from '../collab/session';
+import { useCollab, type CollabStatus } from '../collab/useCollab';
+import { ThemeToggle, TopBar } from '../components/TopBar';
+import { UserMenu } from '../components/UserMenu';
+import { Button, Menu, Spinner } from '../components/ui';
+import { EditorWorkspace } from '../editor/EditorWorkspace';
+import type { monaco } from '../editor/monaco';
+import { HistoryPanel } from '../history/HistoryPanel';
+import { api, ApiError } from '../lib/api';
+import { FullPageSpinner, useMe } from '../lib/auth';
+import { formatDateTime } from '../lib/time';
+import { useLocalState } from '../lib/useLocalState';
+import type { PreviewHandle, SharedView } from '../render/Preview';
+
+function StatusBadge({ status, synced, unsynced }: { status: CollabStatus; synced: boolean; unsynced: number }) {
+  const label =
+    status === 'connected' ? (synced && unsynced === 0 ? 'Saved' : 'Saving…') : status === 'connecting' ? 'Connecting…' : 'Offline: changes kept locally';
+  return (
+    <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" data-testid="status" data-status={status}>
+      <span
+        className={clsx(
+          'size-2 rounded-full',
+          status === 'connected' ? (unsynced ? 'bg-amber-500' : 'bg-green-500') : status === 'connecting' ? 'animate-pulse bg-amber-500' : 'bg-danger',
+        )}
+      />
+      {label}
+    </span>
+  );
+}
+
+function TitleInput({ session, fallback }: { session: DiagramSession; fallback: string }) {
+  const live = useYMapValue<string>(session.meta, 'title');
+  const title = live ?? fallback;
+  const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => {
+    document.title = `${title} · Tidepool`;
+  }, [title]);
+  const commit = () => {
+    const v = draft?.trim();
+    if (v && v !== title) session.meta.set('title', v.slice(0, 200));
+    setDraft(null);
+  };
+  return (
+    <input
+      value={draft ?? title}
+      onChange={(e) => setDraft(e.target.value)}
+      onFocus={(e) => e.target.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+        if (e.key === 'Escape') {
+          setDraft(null);
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      readOnly={session.readOnly}
+      aria-label="Diagram title"
+      data-testid="title-input"
+      className="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm font-medium outline-none hover:border-border focus:border-accent sm:max-w-80"
+    />
+  );
+}
+
+export function DiagramPage() {
+  const { id } = useParams<{ id: string }>();
+  const me = useMe();
+  const qc = useQueryClient();
+  const summary = useQuery({ queryKey: ['diagram', id], queryFn: () => api.getDiagram(id!), enabled: !!id, retry: false });
+  const folders = useQuery({ queryKey: ['folders'], queryFn: api.listFolders });
+  const collab = useCollab(summary.data && !summary.data.deletedAt ? id : undefined, me.data);
+  const session = collab.session;
+
+  const [historyOpen, setHistoryOpen] = useLocalState('tp-history-open', false);
+  const [previewing, setPreviewing] = useState<DiagramVersion | null>(null);
+  const [following, setFollowing] = useState<number | null>(null);
+  const previewRef = useRef<PreviewHandle>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+
+  useEffect(() => {
+    // Keep the library list fresh when we leave.
+    return () => void qc.invalidateQueries({ queryKey: ['diagrams'] });
+  }, [qc]);
+
+  // ---- presence: pointer + view broadcast ----
+  const lastView = useRef(0);
+  const onPointer = useCallback((p: { x: number; y: number } | null) => session?.awareness?.setLocalStateField('pointer', p), [session]);
+  const onUserView = useCallback(
+    (view: SharedView) => {
+      setFollowing(null);
+      const now = performance.now();
+      if (now - lastView.current < 100) return;
+      lastView.current = now;
+      session?.awareness?.setLocalStateField('view', view);
+    },
+    [session],
+  );
+
+  // ---- follow mode: mirror the followed user's preview view and caret ----
+  useEffect(() => {
+    const aw = session?.awareness;
+    if (!aw || following == null) return;
+    const apply = () => {
+      const st = aw.getStates().get(following) as PresenceState | undefined;
+      if (!st) {
+        setFollowing(null);
+        toast.message('They left the diagram');
+        return;
+      }
+      if (st.view) previewRef.current?.setView(st.view);
+      const sel = (st as unknown as { selection?: { head?: Y.RelativePosition } }).selection;
+      const editor = editorRef.current;
+      const model = editor?.getModel();
+      if (sel?.head && editor && model && model.getLanguageId() === 'mermaid') {
+        const abs = Y.createAbsolutePositionFromRelativePosition(sel.head, session.doc);
+        if (abs && abs.type === session.code) {
+          editor.revealPositionInCenterIfOutsideViewport(model.getPositionAt(abs.index));
+        }
+      }
+    };
+    apply();
+    aw.on('change', apply);
+    return () => aw.off('change', apply);
+  }, [session, following]);
+
+  // Typing stops following.
+  const onEditorReady = useCallback((editor: monaco.editor.IStandaloneCodeEditor | null) => {
+    editorRef.current = editor;
+    editor?.onKeyDown(() => setFollowing(null));
+  }, []);
+
+  const followedName = useMemo(() => {
+    if (following == null) return null;
+    const st = session?.awareness?.getStates().get(following) as PresenceState | undefined;
+    return st?.user.name ?? null;
+  }, [following, session]);
+
+  if (summary.isPending || me.isPending) return <FullPageSpinner />;
+  if (summary.isError || summary.data?.deletedAt) {
+    const notFound = summary.error instanceof ApiError && summary.error.status === 404;
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm text-muted">
+          {summary.data?.deletedAt ? 'This diagram is in the trash.' : notFound ? 'This diagram does not exist.' : (summary.error as Error).message}
+        </p>
+        <Link to={summary.data?.deletedAt ? '/?view=trash' : '/'} className="text-sm text-accent hover:underline">
+          Back to library
+        </Link>
+      </div>
+    );
+  }
+  const d = summary.data!;
+  if (collab.error) {
+    return <div className="grid h-full place-items-center p-6 text-sm text-danger">{collab.error}</div>;
+  }
+  if (!session || !collab.synced) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted">
+        <Spinner />
+        {collab.status === 'disconnected' ? 'Waiting for connection…' : 'Opening diagram…'}
+      </div>
+    );
+  }
+
+  const folder = folders.data?.find((f) => f.id === d.folderId);
+
+  return (
+    <>
+      <RemoteCursorStyles session={session} />
+      <DiagramWorkspace
+        session={session}
+        title={d.title}
+        previewRef={previewRef}
+        previewing={previewing}
+        onEditorReady={onEditorReady}
+        onPointer={onPointer}
+        onUserView={onUserView}
+        header={
+          <TopBar
+            left={
+              <>
+                <Link to={folder ? `/?folder=${folder.id}` : '/'} className="hidden shrink-0 items-center gap-1 text-sm text-muted hover:text-fg md:flex">
+                  {folder?.name ?? 'Library'} <ChevronRight size={14} />
+                </Link>
+                <TitleInput session={session} fallback={d.title} />
+                <StatusBadge status={collab.status} synced={collab.synced} unsynced={collab.unsynced} />
+              </>
+            }
+            right={
+              <>
+                <PresenceAvatars session={session} following={following} onFollow={setFollowing} />
+                <ShareMenu id={d.id} session={session} />
+                <Button size="sm" variant={historyOpen ? 'secondary' : 'ghost'} onClick={() => setHistoryOpen((o) => !o)} aria-pressed={historyOpen}>
+                  <History size={14} /> <span className="hidden lg:inline">History</span>
+                </Button>
+                <ThemeToggle />
+                <UserMenu />
+              </>
+            }
+          />
+        }
+        side={
+          historyOpen ? (
+            <HistoryPanelLive
+              diagramId={d.id}
+              session={session}
+              previewing={previewing}
+              onPreview={setPreviewing}
+              onClose={() => {
+                setHistoryOpen(false);
+                setPreviewing(null);
+              }}
+            />
+          ) : undefined
+        }
+        banner={
+          previewing ? (
+            <Banner tone="accent">
+              <Eye size={14} className="shrink-0 text-accent" />
+              <span className="truncate" title="The editor still shows the live diagram">
+                Previewing <strong>{previewing.name ?? 'version'}</strong> · {formatDateTime(previewing.createdAt)}
+              </span>
+              <Button size="sm" onClick={() => setPreviewing(null)}>
+                Back to live
+              </Button>
+            </Banner>
+          ) : followedName ? (
+            <Banner tone="follow">
+              <Eye size={14} /> Following {followedName}
+              <Button size="sm" onClick={() => setFollowing(null)}>
+                <Square size={11} /> Stop
+              </Button>
+            </Banner>
+          ) : null
+        }
+      />
+    </>
+  );
+}
+
+function Banner({ tone, children }: { tone: 'accent' | 'follow'; children: React.ReactNode }) {
+  return (
+    <div
+      className={clsx(
+        'pointer-events-auto absolute top-3 left-3 z-20 flex max-w-[calc(100%-13rem)] items-center gap-2 rounded-lg border px-3 py-1.5 text-xs whitespace-nowrap shadow-sm',
+        tone === 'accent' ? 'border-accent/40 bg-surface text-fg' : 'border-accent bg-accent text-accent-fg',
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Wraps the workspace so live code (for previews/diffs) is read from the shared doc. */
+function DiagramWorkspace({
+  session,
+  title,
+  header,
+  side,
+  banner,
+  previewing,
+  previewRef,
+  onEditorReady,
+  onPointer,
+  onUserView,
+}: {
+  session: DiagramSession;
+  title: string;
+  header: React.ReactNode;
+  side?: React.ReactNode;
+  banner: React.ReactNode;
+  previewing: DiagramVersion | null;
+  previewRef: React.RefObject<PreviewHandle | null>;
+  onEditorReady: (e: monaco.editor.IStandaloneCodeEditor | null) => void;
+  onPointer: (p: { x: number; y: number } | null) => void;
+  onUserView: (v: SharedView) => void;
+}) {
+  const liveTitle = useYMapValue<string>(session.meta, 'title') ?? title;
+  return (
+    <EditorWorkspace
+      session={session}
+      title={liveTitle}
+      header={header}
+      side={side}
+      previewOverride={previewing ? { code: previewing.code, config: previewing.config } : null}
+      confirmSampleReplace
+      fullscreenHref={`${location.pathname}/view`}
+      previewRef={previewRef}
+      onEditorReady={onEditorReady}
+      onPointer={previewing ? undefined : onPointer}
+      onUserView={onUserView}
+      overlay={(api) => (
+        <>
+          {!previewing && <PointerLayer session={session} api={api} />}
+          {banner}
+        </>
+      )}
+    />
+  );
+}
+
+function HistoryPanelLive(props: {
+  diagramId: string;
+  session: DiagramSession;
+  previewing: DiagramVersion | null;
+  onPreview: (v: DiagramVersion | null) => void;
+  onClose: () => void;
+}) {
+  const code = useYText(props.session.code);
+  const config = useYText(props.session.config);
+  return <HistoryPanel {...props} currentCode={code} currentConfig={config} />;
+}
+
+function ShareMenu({ id, session }: { id: string; session: DiagramSession }) {
+  const copy = async (text: string, what: string) => {
+    await navigator.clipboard.writeText(text);
+    toast.success(`${what} copied`);
+  };
+  return (
+    <Menu
+      trigger={(p) => (
+        <Button size="sm" variant="ghost" {...p}>
+          <Share2 size={14} /> <span className="hidden lg:inline">Share</span>
+        </Button>
+      )}
+      items={[
+        { label: 'Copy editor link', icon: <Link2 size={14} />, onSelect: () => void copy(`${location.origin}/d/${id}`, 'Link') },
+        { label: 'Copy full-screen view link', icon: <Eye size={14} />, onSelect: () => void copy(`${location.origin}/d/${id}/view`, 'View link') },
+        'separator',
+        {
+          label: 'Open a copy in the Playground',
+          onSelect: () =>
+            window.open(`/play#${serializeState({ code: session.code.toString(), mermaid: session.config.toString() })}`, '_blank'),
+        },
+      ]}
+    />
+  );
+}

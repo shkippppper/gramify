@@ -176,17 +176,17 @@ export function EditorWorkspace(props: Props) {
           defaultLayout={layout.defaultLayout}
           onLayoutChanged={layout.onLayoutChanged}
         >
-          <Panel id="editor" defaultSize="32" minSize="15">
+          <Panel id="pane-editor" defaultSize="32" minSize="15">
             {editorPane}
           </Panel>
           <Separator className="w-px" />
-          <Panel id="preview" minSize="15">
+          <Panel id="pane-preview" minSize="15">
             {previewPane}
           </Panel>
           {side && (
             <>
               <Separator className="w-px" />
-              <Panel id="side" defaultSize="24" minSize="15">
+              <Panel id="pane-side" defaultSize="24" minSize="15">
                 {side}
               </Panel>
             </>

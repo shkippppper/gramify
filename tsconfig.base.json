@@ -3,7 +3,9 @@
     "target": "ES2023",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2024"],
+    "lib": [
+      "ES2024"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -12,6 +14,8 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
   }
 }
