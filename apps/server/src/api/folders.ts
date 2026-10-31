@@ -6,7 +6,12 @@ import { db } from '../db/index.ts';
 import { assertUuid, requireUser, type AppEnv } from './context.ts';
 import { zValidator } from './validate.ts';
 
-const toFolder = (r: { id: string; name: string; parent_id: string | null; created_at: Date }): Folder => ({
+const toFolder = (r: {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  created_at: Date;
+}): Folder => ({
   id: r.id,
   name: r.name,
   parentId: r.parent_id,
@@ -23,7 +28,11 @@ async function createsCycle(id: string, parentId: string | null) {
   let cur = parentId;
   for (let i = 0; cur && i < 100; i++) {
     if (cur === id) return true;
-    const row = await db.selectFrom('folder').select('parent_id').where('id', '=', cur).executeTakeFirst();
+    const row = await db
+      .selectFrom('folder')
+      .select('parent_id')
+      .where('id', '=', cur)
+      .executeTakeFirst();
     cur = row?.parent_id ?? null;
   }
   return false;
@@ -53,7 +62,10 @@ export const folders = new Hono<AppEnv>()
     }
     const row = await db
       .updateTable('folder')
-      .set({ ...(name ? { name } : {}), ...(parentId !== undefined ? { parent_id: parentId } : {}) })
+      .set({
+        ...(name ? { name } : {}),
+        ...(parentId !== undefined ? { parent_id: parentId } : {}),
+      })
       .where('id', '=', id)
       .returningAll()
       .executeTakeFirst();
@@ -64,10 +76,22 @@ export const folders = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     // Deleting a folder never deletes diagrams: its contents move up one level.
     await db.transaction().execute(async (tx) => {
-      const f = await tx.selectFrom('folder').select('parent_id').where('id', '=', id).executeTakeFirst();
+      const f = await tx
+        .selectFrom('folder')
+        .select('parent_id')
+        .where('id', '=', id)
+        .executeTakeFirst();
       if (!f) throw new HTTPException(404, { message: 'Folder not found' });
-      await tx.updateTable('diagram').set({ folder_id: f.parent_id }).where('folder_id', '=', id).execute();
-      await tx.updateTable('folder').set({ parent_id: f.parent_id }).where('parent_id', '=', id).execute();
+      await tx
+        .updateTable('diagram')
+        .set({ folder_id: f.parent_id })
+        .where('folder_id', '=', id)
+        .execute();
+      await tx
+        .updateTable('folder')
+        .set({ parent_id: f.parent_id })
+        .where('parent_id', '=', id)
+        .execute();
       await tx.deleteFrom('folder').where('id', '=', id).execute();
     });
     return c.body(null, 204);

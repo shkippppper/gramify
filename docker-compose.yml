@@ -1,0 +1,26 @@
+# Local development database:  docker compose up -d db
+# Full production-like stack:   docker compose --profile app up --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: tidepool
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  app:
+    profiles: [app]
+    build: .
+    depends_on: [db]
+    ports: ['3000:3000']
+    environment:
+      DATABASE_URL: postgres://postgres@db:5432/tidepool
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: change-me-change-me-change-me-change-me
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ALLOWED_GOOGLE_DOMAIN: ${ALLOWED_GOOGLE_DOMAIN:-example.com}
+
+volumes:
+  pgdata:

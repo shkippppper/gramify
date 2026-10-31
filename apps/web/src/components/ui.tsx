@@ -170,7 +170,10 @@ export function Dialog({
   }, [open, onClose]);
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+      onMouseDown={onClose}
+    >
       <div
         ref={ref}
         role="dialog"
@@ -186,7 +189,9 @@ export function Dialog({
           </IconButton>
         </div>
         <div className="p-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-border px-4 py-3">{footer}</div>}
+        {footer && (
+          <div className="flex justify-end gap-2 border-t border-border px-4 py-3">{footer}</div>
+        )}
       </div>
     </div>,
     document.body,
@@ -287,12 +292,26 @@ export function Avatar({
   const [broken, setBroken] = useState(false);
   return (
     <span
-      className={clsx('relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full text-[11px] font-semibold text-white', ring && 'ring-2 ring-surface')}
-      style={{ width: size, height: size, background: color ?? '#64748b', boxShadow: color ? `0 0 0 2px ${color}` : undefined }}
+      className={clsx(
+        'relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full text-[11px] font-semibold text-white',
+        ring && 'ring-2 ring-surface',
+      )}
+      style={{
+        width: size,
+        height: size,
+        background: color ?? '#64748b',
+        boxShadow: color ? `0 0 0 2px ${color}` : undefined,
+      }}
       title={name}
     >
       {image && !broken ? (
-        <img src={image} alt="" referrerPolicy="no-referrer" className="size-full object-cover" onError={() => setBroken(true)} />
+        <img
+          src={image}
+          alt=""
+          referrerPolicy="no-referrer"
+          className="size-full object-cover"
+          onError={() => setBroken(true)}
+        />
       ) : (
         initials || '?'
       )}
@@ -303,7 +322,10 @@ export function Avatar({
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
-      className={clsx('inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent', className)}
+      className={clsx(
+        'inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent',
+        className,
+      )}
       aria-hidden
     />
   );

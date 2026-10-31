@@ -13,6 +13,12 @@ export default defineConfig({
       '/collab': { target: API.replace(/^http/, 'ws'), ws: true },
     },
   },
+  preview: {
+    proxy: {
+      '/api': { target: API, changeOrigin: false },
+      '/collab': { target: API.replace(/^http/, 'ws'), ws: true },
+    },
+  },
   build: {
     target: 'es2023',
     chunkSizeWarningLimit: 5000,

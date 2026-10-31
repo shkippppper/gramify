@@ -57,6 +57,7 @@ export function deserializeState(serialized: string): LinkState {
   return {
     ...parsed,
     code: parsed.code,
-    mermaid: typeof parsed.mermaid === 'string' ? parsed.mermaid : JSON.stringify(parsed.mermaid ?? {}),
+    mermaid:
+      typeof parsed.mermaid === 'string' ? parsed.mermaid : JSON.stringify(parsed.mermaid ?? {}),
   };
 }

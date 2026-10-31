@@ -20,7 +20,8 @@ export function DiagramViewPage() {
   const { id } = useParams<{ id: string }>();
   const me = useMe();
   const collab = useCollab(id, me.data);
-  if (collab.error) return <div className="grid h-full place-items-center text-sm text-danger">{collab.error}</div>;
+  if (collab.error)
+    return <div className="grid h-full place-items-center text-sm text-danger">{collab.error}</div>;
   if (!collab.session || !collab.synced) return <FullPageSpinner />;
   return <LiveView session={collab.session} />;
 }

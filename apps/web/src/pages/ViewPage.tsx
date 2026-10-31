@@ -10,9 +10,18 @@ export function DiagramView({ code, config }: { code: string; config: string }) 
   return (
     <div className="h-full">
       {error && !result ? (
-        <div className="grid h-full place-items-center p-6 font-mono text-sm whitespace-pre-wrap text-danger">{error.message}</div>
+        <div className="grid h-full place-items-center p-6 font-mono text-sm whitespace-pre-wrap text-danger">
+          {error.message}
+        </div>
       ) : (
-        <Preview svg={result?.svg ?? null} bindFunctions={result?.bindFunctions} stale={false} rough={false} grid={false} chrome={false} />
+        <Preview
+          svg={result?.svg ?? null}
+          bindFunctions={result?.bindFunctions}
+          stale={false}
+          rough={false}
+          grid={false}
+          chrome={false}
+        />
       )}
     </div>
   );

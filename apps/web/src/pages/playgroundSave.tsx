@@ -12,7 +12,12 @@ export function SaveToLibraryButton({ session }: { session: DiagramSession }) {
   const me = useMe();
   const navigate = useNavigate();
   const save = useMutation({
-    mutationFn: () => api.createDiagram({ title: 'Untitled diagram', code: session.code.toString(), config: session.config.toString() }),
+    mutationFn: () =>
+      api.createDiagram({
+        title: 'Untitled diagram',
+        code: session.code.toString(),
+        config: session.config.toString(),
+      }),
     onSuccess: (d) => {
       toast.success('Saved to library');
       navigate(`/d/${d.id}`);

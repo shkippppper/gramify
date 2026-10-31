@@ -22,7 +22,10 @@ function collabUrl() {
 }
 
 /** Connect to a diagram's shared Y.Doc and publish our presence. */
-export function useCollab(diagramId: string | undefined, me: PublicUser | null | undefined): CollabState {
+export function useCollab(
+  diagramId: string | undefined,
+  me: PublicUser | null | undefined,
+): CollabState {
   const [state, setState] = useState<CollabState>({
     session: null,
     provider: null,
@@ -42,7 +45,13 @@ export function useCollab(diagramId: string | undefined, me: PublicUser | null |
     });
     const awareness = provider.awareness!;
     const presence: Partial<PresenceState> = {
-      user: { id: me.id, name: me.name, email: me.email, image: me.image, color: colorForId(me.id) },
+      user: {
+        id: me.id,
+        name: me.name,
+        email: me.email,
+        image: me.image,
+        color: colorForId(me.id),
+      },
       pointer: null,
       tab: 'code',
       view: null,
@@ -52,9 +61,15 @@ export function useCollab(diagramId: string | undefined, me: PublicUser | null |
     const session = sessionFromDoc(doc, awareness);
     setState({ session, provider, status: 'connecting', synced: false, unsynced: 0, error: null });
 
-    provider.on('status', ({ status }: { status: CollabStatus }) => setState((s) => ({ ...s, status })));
-    provider.on('synced', ({ state: synced }: { state: boolean }) => setState((s) => ({ ...s, synced })));
-    provider.on('unsyncedChanges', ({ number }: { number: number }) => setState((s) => ({ ...s, unsynced: number })));
+    provider.on('status', ({ status }: { status: CollabStatus }) =>
+      setState((s) => ({ ...s, status })),
+    );
+    provider.on('synced', ({ state: synced }: { state: boolean }) =>
+      setState((s) => ({ ...s, synced })),
+    );
+    provider.on('unsyncedChanges', ({ number }: { number: number }) =>
+      setState((s) => ({ ...s, unsynced: number })),
+    );
     provider.on('authenticationFailed', ({ reason }: { reason: string }) =>
       setState((s) => ({ ...s, error: reason || 'You do not have access to this diagram.' })),
     );
@@ -80,7 +95,8 @@ export function remotePeers(session: DiagramSession | null): Array<[number, Pres
   if (!aw) return [];
   const out: Array<[number, PresenceState]> = [];
   aw.getStates().forEach((st, id) => {
-    if (id !== aw.clientID && (st as Partial<PresenceState>).user) out.push([id, st as PresenceState]);
+    if (id !== aw.clientID && (st as Partial<PresenceState>).user)
+      out.push([id, st as PresenceState]);
   });
   return out;
 }

@@ -6,7 +6,12 @@ export function useFolders() {
   return useQuery({ queryKey: ['folders'], queryFn: api.listFolders });
 }
 
-export function useDiagrams(p: { view: LibraryView; folderId: string | null; q: string; sort: SortKey }) {
+export function useDiagrams(p: {
+  view: LibraryView;
+  folderId: string | null;
+  q: string;
+  sort: SortKey;
+}) {
   return useQuery({
     queryKey: ['diagrams', p],
     queryFn: () => api.listDiagrams(p),

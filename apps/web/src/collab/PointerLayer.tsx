@@ -21,7 +21,13 @@ export function PointerLayer({ session, api }: { session: DiagramSession; api: P
             data-testid="remote-pointer"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" className="drop-shadow" aria-hidden>
-              <path d="M2 1.5 L15.5 8.2 L9.2 9.6 L6.4 15.6 Z" fill={st.user.color} stroke="white" strokeWidth="1.3" strokeLinejoin="round" />
+              <path
+                d="M2 1.5 L15.5 8.2 L9.2 9.6 L6.4 15.6 Z"
+                fill={st.user.color}
+                stroke="white"
+                strokeWidth="1.3"
+                strokeLinejoin="round"
+              />
             </svg>
             <span
               className="absolute top-4 left-3 rounded-md px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-white shadow"

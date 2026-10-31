@@ -5,7 +5,15 @@ import { parseConfig, renderDiagram } from '../render/mermaid';
 const cache = new Map<string, string | null>();
 
 /** Lazily rendered, cached SVG preview shown as an <img> (isolated styles and ids). */
-export function Thumbnail({ code, config, className }: { code: string; config: string; className?: string }) {
+export function Thumbnail({
+  code,
+  config,
+  className,
+}: {
+  code: string;
+  config: string;
+  className?: string;
+}) {
   const { dark } = useTheme();
   const key = `${dark ? 'd' : 'l'}\u0000${config}\u0000${code}`;
   const ref = useRef<HTMLDivElement>(null);
@@ -15,7 +23,9 @@ export function Thumbnail({ code, config, className }: { code: string; config: s
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), { rootMargin: '200px' });
+    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), {
+      rootMargin: '200px',
+    });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -41,7 +51,13 @@ export function Thumbnail({ code, config, className }: { code: string; config: s
   return (
     <div ref={ref} className={className}>
       {src ? (
-        <img src={src} alt="" className="size-full object-contain" loading="lazy" draggable={false} />
+        <img
+          src={src}
+          alt=""
+          className="size-full object-contain"
+          loading="lazy"
+          draggable={false}
+        />
       ) : src === null ? (
         <div className="grid size-full place-items-center text-xs text-muted">Syntax error</div>
       ) : (

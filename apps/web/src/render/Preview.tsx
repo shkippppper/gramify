@@ -138,7 +138,10 @@ export function Preview({
     [bump],
   );
 
-  useImperativeHandle(ref, () => ({ getExportSvg: () => exportRef.current, getView, setView }), [getView, setView]);
+  useImperativeHandle(ref, () => ({ getExportSvg: () => exportRef.current, getView, setView }), [
+    getView,
+    setView,
+  ]);
 
   // Place the SVG and (re)initialise pan/zoom whenever the diagram changes.
   useEffect(() => {
@@ -164,7 +167,9 @@ export function Preview({
       exportRef.current = el.outerHTML;
       const vb = (el.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
       boxRef.current =
-        vb.length === 4 && vb[2]! > 0 && vb[3]! > 0 ? (vb as [number, number, number, number]) : null;
+        vb.length === 4 && vb[2]! > 0 && vb[3]! > 0
+          ? (vb as [number, number, number, number])
+          : null;
 
       prev?.destroy();
       pzRef.current = null;
@@ -297,7 +302,10 @@ export function Preview({
   return (
     <div
       ref={containerRef}
-      className={clsx('tp-preview relative h-full w-full overflow-hidden bg-surface', grid && 'tp-grid-bg')}
+      className={clsx(
+        'tp-preview relative h-full w-full overflow-hidden bg-surface',
+        grid && 'tp-grid-bg',
+      )}
       data-testid="preview"
       onPointerMove={(e) => {
         if (!onPointerRef.current) return;
@@ -314,11 +322,19 @@ export function Preview({
         data-testid="diagram"
       />
       {!svg && !stale && (
-        <div className="absolute inset-0 grid place-items-center text-sm text-muted">Rendering…</div>
+        <div className="absolute inset-0 grid place-items-center text-sm text-muted">
+          Rendering…
+        </div>
       )}
-      {overlay && <div className="pointer-events-none absolute inset-0">{overlay({ toNormalized, fromNormalized, version })}</div>}
+      {overlay && (
+        <div className="pointer-events-none absolute inset-0">
+          {overlay({ toNormalized, fromNormalized, version })}
+        </div>
+      )}
       {renderError && (
-        <div className="absolute left-3 top-3 rounded bg-danger/10 px-2 py-1 text-xs text-danger">{renderError}</div>
+        <div className="absolute left-3 top-3 rounded bg-danger/10 px-2 py-1 text-xs text-danger">
+          {renderError}
+        </div>
       )}
       {chrome && (
         <>

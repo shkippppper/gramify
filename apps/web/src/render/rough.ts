@@ -15,7 +15,8 @@ export async function sketchSvg(source: SVGSVGElement): Promise<SVGSVGElement> {
     if (!out) throw new Error('Hand-drawn conversion failed');
     const w = out.getAttribute('width');
     const h = out.getAttribute('height');
-    if (w && h && !out.getAttribute('viewBox')) out.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`);
+    if (w && h && !out.getAttribute('viewBox'))
+      out.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`);
     out.remove();
     return out;
   } finally {

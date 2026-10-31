@@ -7,9 +7,18 @@ export function timeAgo(iso: string, now = Date.now()) {
   if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
   if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
   if (abs < 86400 * 7) return rtf.format(Math.round(diff / 86400), 'day');
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: abs > 86400 * 300 ? 'numeric' : undefined });
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: abs > 86400 * 300 ? 'numeric' : undefined,
+  });
 }
 
 export function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

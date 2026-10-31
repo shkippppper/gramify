@@ -22,7 +22,12 @@ function menuItems(d: DiagramSummary, a: CardActions): Array<MenuItem | 'separat
   if (d.deletedAt) {
     return [
       { label: 'Restore', icon: <RotateCcw size={14} />, onSelect: () => a.restore(d) },
-      { label: 'Delete forever', icon: <Trash2 size={14} />, danger: true, onSelect: () => a.deleteForever(d) },
+      {
+        label: 'Delete forever',
+        icon: <Trash2 size={14} />,
+        danger: true,
+        onSelect: () => a.deleteForever(d),
+      },
     ];
   }
   return [
@@ -31,14 +36,22 @@ function menuItems(d: DiagramSummary, a: CardActions): Array<MenuItem | 'separat
     { label: 'Duplicate', icon: <Copy size={14} />, onSelect: () => a.duplicate(d) },
     { label: d.starred ? 'Unstar' : 'Star', icon: <Star size={14} />, onSelect: () => a.star(d) },
     'separator',
-    { label: 'Move to trash', icon: <Trash2 size={14} />, danger: true, onSelect: () => a.trash(d) },
+    {
+      label: 'Move to trash',
+      icon: <Trash2 size={14} />,
+      danger: true,
+      onSelect: () => a.trash(d),
+    },
   ];
 }
 
 function Present({ users }: { users: PublicUser[] }) {
   if (!users.length) return null;
   return (
-    <div className="flex -space-x-1.5" title={`Editing now: ${users.map((u) => u.name).join(', ')}`}>
+    <div
+      className="flex -space-x-1.5"
+      title={`Editing now: ${users.map((u) => u.name).join(', ')}`}
+    >
       {users.slice(0, 4).map((u) => (
         <Avatar key={u.id} name={u.name} image={u.image} color={colorForId(u.id)} size={20} ring />
       ))}
@@ -78,7 +91,12 @@ export function DiagramCard({
     />
   );
   const star = !d.deletedAt && (
-    <IconButton label={d.starred ? 'Unstar' : 'Star'} active={d.starred} className="size-7" onClick={() => actions.star(d)}>
+    <IconButton
+      label={d.starred ? 'Unstar' : 'Star'}
+      active={d.starred}
+      className="size-7"
+      onClick={() => actions.star(d)}
+    >
       <Star size={14} className={clsx(d.starred && 'fill-current')} />
     </IconButton>
   );
@@ -95,8 +113,16 @@ export function DiagramCard({
 
   if (layout === 'list') {
     return (
-      <div className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 hover:border-border hover:bg-surface" {...dragProps} data-testid="diagram-card">
-        <Thumbnail code={d.code} config={d.config} className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-surface p-1" />
+      <div
+        className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 hover:border-border hover:bg-surface"
+        {...dragProps}
+        data-testid="diagram-card"
+      >
+        <Thumbnail
+          code={d.code}
+          config={d.config}
+          className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-surface p-1"
+        />
         {href ? (
           <Link to={href} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-accent">
             {d.title}
@@ -113,9 +139,18 @@ export function DiagramCard({
   }
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md" {...dragProps} data-testid="diagram-card">
+    <div
+      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md"
+      {...dragProps}
+      data-testid="diagram-card"
+    >
       {href ? (
-        <Link to={href} className="block aspect-[4/3] border-b border-border bg-bg p-3" tabIndex={-1} aria-hidden>
+        <Link
+          to={href}
+          className="block aspect-[4/3] border-b border-border bg-bg p-3"
+          tabIndex={-1}
+          aria-hidden
+        >
           <Thumbnail code={d.code} config={d.config} className="size-full" />
         </Link>
       ) : (

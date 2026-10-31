@@ -1,6 +1,16 @@
 import type { Folder } from '@tidepool/shared';
 import clsx from 'clsx';
-import { ChevronRight, Clock, Folder as FolderIcon, FolderPlus, LayoutGrid, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
+import {
+  ChevronRight,
+  Clock,
+  Folder as FolderIcon,
+  FolderPlus,
+  LayoutGrid,
+  MoreHorizontal,
+  Pencil,
+  Star,
+  Trash2,
+} from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { api, type LibraryView } from '../lib/api';
 import { useLocalState } from '../lib/useLocalState';
@@ -57,7 +67,11 @@ function NavItem({
         }
       }}
     >
-      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-1 text-left">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-1 text-left"
+      >
         {icon}
         <span className="truncate">{children}</span>
       </button>
@@ -68,7 +82,11 @@ function NavItem({
 
 export function Sidebar({ view, folderId, folders, onSelect }: Props) {
   const [expanded, setExpanded] = useLocalState<Record<string, boolean>>('tp-folders-expanded', {});
-  const [dialog, setDialog] = useState<{ mode: 'create' | 'rename'; parentId: string | null; folder?: Folder } | null>(null);
+  const [dialog, setDialog] = useState<{
+    mode: 'create' | 'rename';
+    parentId: string | null;
+    folder?: Folder;
+  } | null>(null);
   const [name, setName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<Folder | null>(null);
 
@@ -82,9 +100,11 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
     return m;
   }, [folders]);
 
-  const move = useLibraryMutation(({ id, folderId: to }: { id: string; folderId: string | null }) =>
-    api.updateDiagram(id, { folderId: to }),
-  'Moved');
+  const move = useLibraryMutation(
+    ({ id, folderId: to }: { id: string; folderId: string | null }) =>
+      api.updateDiagram(id, { folderId: to }),
+    'Moved',
+  );
   const save = useLibraryMutation(async () => {
     if (!dialog || !name.trim()) return;
     if (dialog.mode === 'create') await api.createFolder(name.trim(), dialog.parentId);
@@ -108,13 +128,19 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
                 role="button"
                 tabIndex={-1}
                 aria-label={open ? 'Collapse' : 'Expand'}
-                className={clsx('grid size-4 place-items-center text-muted', !kids.length && 'invisible')}
+                className={clsx(
+                  'grid size-4 place-items-center text-muted',
+                  !kids.length && 'invisible',
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   setExpanded((x) => ({ ...x, [f.id]: !open }));
                 }}
               >
-                <ChevronRight size={12} className={clsx('transition-transform', open && 'rotate-90')} />
+                <ChevronRight
+                  size={12}
+                  className={clsx('transition-transform', open && 'rotate-90')}
+                />
               </span>
               <FolderIcon size={15} className="text-muted" />
             </span>
@@ -122,7 +148,11 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
           trailing={
             <Menu
               trigger={(p) => (
-                <IconButton label={`Folder actions for ${f.name}`} className="size-6 opacity-0 group-hover:opacity-100 aria-expanded:opacity-100" {...p}>
+                <IconButton
+                  label={`Folder actions for ${f.name}`}
+                  className="size-6 opacity-0 group-hover:opacity-100 aria-expanded:opacity-100"
+                  {...p}
+                >
                   <MoreHorizontal size={14} />
                 </IconButton>
               )}
@@ -144,7 +174,12 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
                     setDialog({ mode: 'rename', parentId: f.parentId, folder: f });
                   },
                 },
-                { label: 'Delete', icon: <Trash2 size={14} />, danger: true, onSelect: () => setConfirmDelete(f) },
+                {
+                  label: 'Delete',
+                  icon: <Trash2 size={14} />,
+                  danger: true,
+                  onSelect: () => setConfirmDelete(f),
+                },
               ]}
             />
           }
@@ -158,10 +193,18 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
 
   return (
     <nav className="flex h-full flex-col gap-0.5 overflow-y-auto p-2" aria-label="Library">
-      <NavItem active={view === 'recent'} onClick={() => onSelect('recent', null)} icon={<Clock size={15} className="text-muted" />}>
+      <NavItem
+        active={view === 'recent'}
+        onClick={() => onSelect('recent', null)}
+        icon={<Clock size={15} className="text-muted" />}
+      >
         Recent
       </NavItem>
-      <NavItem active={view === 'starred'} onClick={() => onSelect('starred', null)} icon={<Star size={15} className="text-muted" />}>
+      <NavItem
+        active={view === 'starred'}
+        onClick={() => onSelect('starred', null)}
+        icon={<Star size={15} className="text-muted" />}
+      >
         Starred
       </NavItem>
       <NavItem
@@ -188,7 +231,11 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
       {(children.get(null) ?? []).map((f) => renderFolder(f, 0))}
       {folders.length === 0 && <p className="px-2 text-xs text-muted">No folders yet.</p>}
       <div className="mt-auto pt-4">
-        <NavItem active={view === 'trash'} onClick={() => onSelect('trash', null)} icon={<Trash2 size={15} className="text-muted" />}>
+        <NavItem
+          active={view === 'trash'}
+          onClick={() => onSelect('trash', null)}
+          icon={<Trash2 size={15} className="text-muted" />}
+        >
           Trash
         </NavItem>
       </div>
@@ -216,7 +263,13 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
             if (name.trim()) save.mutate(undefined, { onSuccess: () => setDialog(null) });
           }}
         >
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Folder name" className="w-full" aria-label="Folder name" />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Folder name"
+            className="w-full"
+            aria-label="Folder name"
+          />
         </form>
       </Dialog>
       <Dialog
@@ -242,8 +295,8 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
         }
       >
         <p className="text-sm text-muted">
-          <strong className="text-fg">{confirmDelete?.name}</strong> will be removed. Diagrams and subfolders inside it
-          move up one level; nothing is deleted.
+          <strong className="text-fg">{confirmDelete?.name}</strong> will be removed. Diagrams and
+          subfolders inside it move up one level; nothing is deleted.
         </p>
       </Dialog>
     </nav>

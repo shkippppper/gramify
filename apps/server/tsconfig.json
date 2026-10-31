@@ -1,5 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "lib": ["ES2024", "DOM"], "types": ["node"], "module": "NodeNext", "moduleResolution": "NodeNext" },
-  "include": ["src"]
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"],
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src", "vitest.config.ts"]
 }

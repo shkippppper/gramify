@@ -5,7 +5,15 @@ import { toast } from 'sonner';
 import { Button, Input } from '../components/ui';
 import { slugify } from '../lib/download';
 import { useLocalState } from '../lib/useLocalState';
-import { canCopyImage, copyPng, downloadSvg, downloadText, fileName, svgToPng, type SizeMode } from '../render/export';
+import {
+  canCopyImage,
+  copyPng,
+  downloadSvg,
+  downloadText,
+  fileName,
+  svgToPng,
+  type SizeMode,
+} from '../render/export';
 import { downloadBlob } from '../lib/download';
 
 interface Props {
@@ -16,7 +24,9 @@ interface Props {
 }
 
 function previewBackground() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--tp-surface').trim() || '#ffffff';
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue('--tp-surface').trim() || '#ffffff'
+  );
 }
 
 export function Actions({ getSvg, code, config, title }: Props) {
@@ -31,7 +41,8 @@ export function Actions({ getSvg, code, config, title }: Props) {
     return svg;
   };
   const bg = () => (transparent ? null : previewBackground());
-  const png = (svg: string) => svgToPng(svg, { mode, size: Math.min(10000, Math.max(3, size || 1080)), background: bg() });
+  const png = (svg: string) =>
+    svgToPng(svg, { mode, size: Math.min(10000, Math.max(3, size || 1080)), background: bg() });
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -71,7 +82,11 @@ export function Actions({ getSvg, code, config, title }: Props) {
           />
         )}
         <label className="flex items-center gap-1">
-          <input type="checkbox" checked={transparent} onChange={(e) => setTransparent(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={transparent}
+            onChange={(e) => setTransparent(e.target.checked)}
+          />
           Transparent
         </label>
       </fieldset>
@@ -116,14 +131,21 @@ export function Actions({ getSvg, code, config, title }: Props) {
         <Button size="sm" onClick={() => downloadText(code, `${slugify(title)}.mmd`)}>
           <FileCode size={14} /> .mmd
         </Button>
-        <Button size="sm" onClick={() => void copy('```mermaid\n' + code.trimEnd() + '\n```\n', 'Markdown')}>
+        <Button
+          size="sm"
+          onClick={() => void copy('```mermaid\n' + code.trimEnd() + '\n```\n', 'Markdown')}
+        >
           <Code2 size={14} /> Copy Markdown
         </Button>
         <Button
           size="sm"
           title="Open a copy in the public mermaid.live editor (content is placed in the URL)"
           onClick={() =>
-            window.open(`https://mermaid.live/edit#${serializeState({ code, mermaid: config })}`, '_blank', 'noopener')
+            window.open(
+              `https://mermaid.live/edit#${serializeState({ code, mermaid: config })}`,
+              '_blank',
+              'noopener',
+            )
           }
         >
           <ExternalLink size={14} /> mermaid.live

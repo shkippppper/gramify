@@ -98,7 +98,11 @@ export async function takeContributors(diagramId: string): Promise<string[]> {
 }
 
 /** Snapshot the doc as an automatic version if it changed since the latest version. */
-async function maybeAutoSnapshot(diagramId: string, content: { code: string; config: string }, force: boolean) {
+async function maybeAutoSnapshot(
+  diagramId: string,
+  content: { code: string; config: string },
+  force: boolean,
+) {
   const t = await track(diagramId);
   if (t.contributors.size === 0) return;
   if (!force && Date.now() - t.lastSnapshotAt < AUTO_SNAPSHOT_INTERVAL_MS) return;
@@ -128,7 +132,11 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
   maxDebounce: 10000,
   quiet: true,
 
-  async onAuthenticate({ documentName, context, connectionConfig }: onAuthenticatePayload<CollabContext>) {
+  async onAuthenticate({
+    documentName,
+    context,
+    connectionConfig,
+  }: onAuthenticatePayload<CollabContext>) {
     if (!context.user && !context.system) throw new Error('Not authenticated');
     const id = diagramIdFromDocName(documentName);
     if (!id || !UUID_RE.test(id)) throw new Error('Unknown document');
@@ -179,7 +187,10 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
           .where('id', '=', id)
           .executeTakeFirst();
         if (!prev) return;
-        const changed = prev.code_text !== content.code || prev.config_text !== content.config || (content.title && prev.title !== content.title);
+        const changed =
+          prev.code_text !== content.code ||
+          prev.config_text !== content.config ||
+          (content.title && prev.title !== content.title);
         await db
           .updateTable('diagram')
           .set({
@@ -187,7 +198,12 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
             code_text: content.code,
             config_text: content.config,
             ...(content.title ? { title: content.title } : {}),
-            ...(changed ? { updated_at: sql<Date>`now()`, updated_by: t.lastEditor ?? sql<string>`updated_by` } : {}),
+            ...(changed
+              ? {
+                  updated_at: sql<Date>`now()`,
+                  updated_by: t.lastEditor ?? sql<string>`updated_by`,
+                }
+              : {}),
           })
           .where('id', '=', id)
           .execute();
@@ -203,7 +219,11 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
 });
 
 /** Run a server-side transaction on a diagram's live doc (loads it if needed). */
-export async function editDoc(diagramId: string, fn: (doc: Y.Doc) => void, user: SessionUser | null) {
+export async function editDoc(
+  diagramId: string,
+  fn: (doc: Y.Doc) => void,
+  user: SessionUser | null,
+) {
   const conn = await hocuspocus.openDirectConnection(docNameFor(diagramId), { user, system: true });
   try {
     await conn.transact(fn);
@@ -246,7 +266,8 @@ export function presence(): Record<string, PublicUser[]> {
     const seen = new Map<string, PublicUser>();
     for (const state of doc.awareness.getStates().values()) {
       const u = (state as { user?: PublicUser }).user;
-      if (u?.id && !seen.has(u.id)) seen.set(u.id, { id: u.id, name: u.name, email: u.email, image: u.image ?? null });
+      if (u?.id && !seen.has(u.id))
+        seen.set(u.id, { id: u.id, name: u.name, email: u.email, image: u.image ?? null });
     }
     if (seen.size) out[id] = [...seen.values()];
   }

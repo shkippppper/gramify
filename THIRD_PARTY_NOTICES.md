@@ -1,6 +1,7 @@
 # Third-party notices
 
 ## mermaid-live-editor
+
 `apps/web/src/editor/mermaidLanguage.ts` is vendored from
 https://github.com/mermaid-js/mermaid-live-editor (`src/lib/util/monacoExtra.ts`), itself derived from
 https://github.com/Yash-Singh1/monaco-mermaid. The error-line heuristics in `apps/web/src/render/errors.ts`
@@ -23,5 +24,6 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFT
 IN THE SOFTWARE.
 
 ## Mermaid config JSON schema
+
 `apps/web/src/editor/mermaid-config.schema.json` is converted from mermaid's
 `packages/mermaid/src/schemas/config.schema.yaml` (v12.2.0, MIT, Copyright (c) 2014 - 2022 Knut Sveidqvist).

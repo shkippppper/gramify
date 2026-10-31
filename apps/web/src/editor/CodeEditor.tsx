@@ -32,17 +32,30 @@ let modelSeq = 0;
 export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onReady }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const modelsRef = useRef<{ code: monaco.editor.ITextModel; config: monaco.editor.ITextModel } | null>(null);
+  const modelsRef = useRef<{
+    code: monaco.editor.ITextModel;
+    config: monaco.editor.ITextModel;
+  } | null>(null);
   const undoRef = useRef<{ code: Y.UndoManager; config: Y.UndoManager } | null>(null);
-  const viewStates = useRef<Partial<Record<EditorTab, monaco.editor.ICodeEditorViewState | null>>>({});
+  const viewStates = useRef<Partial<Record<EditorTab, monaco.editor.ICodeEditorViewState | null>>>(
+    {},
+  );
   const tabRef = useRef(tab);
   tabRef.current = tab;
 
   useEffect(() => {
     setupMonaco();
     const seq = ++modelSeq;
-    const code = monaco.editor.createModel('', 'mermaid', monaco.Uri.parse(`inmemory://tp/${seq}/diagram.mmd`));
-    const config = monaco.editor.createModel('', 'json', monaco.Uri.parse(`inmemory://tp/${seq}/config.json`));
+    const code = monaco.editor.createModel(
+      '',
+      'mermaid',
+      monaco.Uri.parse(`inmemory://tp/${seq}/diagram.mmd`),
+    );
+    const config = monaco.editor.createModel(
+      '',
+      'json',
+      monaco.Uri.parse(`inmemory://tp/${seq}/config.json`),
+    );
     code.setEOL(monaco.editor.EndOfLineSequence.LF);
     config.setEOL(monaco.editor.EndOfLineSequence.LF);
     modelsRef.current = { code, config };
@@ -74,7 +87,9 @@ export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onRea
     undoRef.current = undo;
     const current = () => undo[tabRef.current];
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => current().undo());
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => current().redo());
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () =>
+      current().redo(),
+    );
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => current().redo());
 
     const focusSub = editor.onDidFocusEditorText(() =>

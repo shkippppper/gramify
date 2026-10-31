@@ -25,9 +25,11 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@hocuspocus/provider": "4.8.0",
     "@types/node": "^22",
     "@types/pg": "^8",
     "@types/ws": "8.18.2",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "y-protocols": "1.0.7"
   }
 }

@@ -29,12 +29,18 @@ export const migrations: Record<string, Migration> = {
         .addColumn('deleted_at', 'timestamptz')
         .execute();
       await db.schema.createIndex('diagram_folder_idx').on('diagram').column('folder_id').execute();
-      await db.schema.createIndex('diagram_updated_idx').on('diagram').column('updated_at').execute();
+      await db.schema
+        .createIndex('diagram_updated_idx')
+        .on('diagram')
+        .column('updated_at')
+        .execute();
 
       await db.schema
         .createTable('diagram_star')
         .addColumn('user_id', 'text', (c) => c.notNull().references('user.id').onDelete('cascade'))
-        .addColumn('diagram_id', 'uuid', (c) => c.notNull().references('diagram.id').onDelete('cascade'))
+        .addColumn('diagram_id', 'uuid', (c) =>
+          c.notNull().references('diagram.id').onDelete('cascade'),
+        )
         .addColumn('created_at', 'timestamptz', (c) => c.notNull().defaultTo(sql`now()`))
         .addPrimaryKeyConstraint('diagram_star_pk', ['user_id', 'diagram_id'])
         .execute();
@@ -42,7 +48,9 @@ export const migrations: Record<string, Migration> = {
       await db.schema
         .createTable('diagram_visit')
         .addColumn('user_id', 'text', (c) => c.notNull().references('user.id').onDelete('cascade'))
-        .addColumn('diagram_id', 'uuid', (c) => c.notNull().references('diagram.id').onDelete('cascade'))
+        .addColumn('diagram_id', 'uuid', (c) =>
+          c.notNull().references('diagram.id').onDelete('cascade'),
+        )
         .addColumn('visited_at', 'timestamptz', (c) => c.notNull().defaultTo(sql`now()`))
         .addPrimaryKeyConstraint('diagram_visit_pk', ['user_id', 'diagram_id'])
         .execute();
@@ -50,8 +58,12 @@ export const migrations: Record<string, Migration> = {
       await db.schema
         .createTable('diagram_version')
         .addColumn('id', 'uuid', (c) => c.primaryKey().defaultTo(sql`gen_random_uuid()`))
-        .addColumn('diagram_id', 'uuid', (c) => c.notNull().references('diagram.id').onDelete('cascade'))
-        .addColumn('kind', 'text', (c) => c.notNull().check(sql`kind in ('auto','named','restore')`))
+        .addColumn('diagram_id', 'uuid', (c) =>
+          c.notNull().references('diagram.id').onDelete('cascade'),
+        )
+        .addColumn('kind', 'text', (c) =>
+          c.notNull().check(sql`kind in ('auto','named','restore')`),
+        )
         .addColumn('name', 'text')
         .addColumn('code_text', 'text', (c) => c.notNull())
         .addColumn('config_text', 'text', (c) => c.notNull())

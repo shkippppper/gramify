@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { extractErrorLineText, findErrorLine, mostRelevantLine, normalizeErrorMessage } from './errors';
+import {
+  extractErrorLineText,
+  findErrorLine,
+  mostRelevantLine,
+  normalizeErrorMessage,
+} from './errors';
 
 const code = `flowchart TD
   A --> B
@@ -8,7 +13,8 @@ const code = `flowchart TD
 
 describe('error helpers', () => {
   it('extracts the snippet from a parse error', () => {
-    const msg = 'Parse error on line 3:\n...B --> C{oops  C --> D\n--------------------^\nExpecting X';
+    const msg =
+      'Parse error on line 3:\n...B --> C{oops  C --> D\n--------------------^\nExpecting X';
     expect(extractErrorLineText(msg)).toBe('B --> C{oops  C --> D');
   });
 

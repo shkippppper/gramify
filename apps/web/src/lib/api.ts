@@ -33,17 +33,30 @@ export interface AppConfig {
 export const api = {
   config: () => request<AppConfig>('GET', '/config'),
   me: () => request<PublicUser>('GET', '/me'),
-  devSignIn: (email: string, name: string) => request<unknown>('POST', '/auth/dev/sign-in', { email, name }),
+  devSignIn: (email: string, name: string) =>
+    request<unknown>('POST', '/auth/dev/sign-in', { email, name }),
 
-  listDiagrams: (p: { view: LibraryView; folderId?: string | null; q?: string; sort?: SortKey }) => {
+  listDiagrams: (p: {
+    view: LibraryView;
+    folderId?: string | null;
+    q?: string;
+    sort?: SortKey;
+  }) => {
     const qs = new URLSearchParams({ view: p.view, sort: p.sort ?? 'updated' });
     if (p.folderId) qs.set('folderId', p.folderId);
     if (p.q) qs.set('q', p.q);
-    return request<{ diagrams: DiagramSummary[]; presence: Record<string, PublicUser[]> }>('GET', `/diagrams?${qs}`);
+    return request<{ diagrams: DiagramSummary[]; presence: Record<string, PublicUser[]> }>(
+      'GET',
+      `/diagrams?${qs}`,
+    );
   },
   getDiagram: (id: string) => request<DiagramSummary>('GET', `/diagrams/${id}`),
-  createDiagram: (b: { title?: string; folderId?: string | null; code?: string; config?: string }) =>
-    request<DiagramSummary>('POST', '/diagrams', b),
+  createDiagram: (b: {
+    title?: string;
+    folderId?: string | null;
+    code?: string;
+    config?: string;
+  }) => request<DiagramSummary>('POST', '/diagrams', b),
   updateDiagram: (id: string, b: { title?: string; folderId?: string | null }) =>
     request<DiagramSummary>('PATCH', `/diagrams/${id}`, b),
   duplicateDiagram: (id: string) => request<DiagramSummary>('POST', `/diagrams/${id}/duplicate`),
@@ -53,13 +66,19 @@ export const api = {
   star: (id: string, on: boolean) => request<void>(on ? 'PUT' : 'DELETE', `/diagrams/${id}/star`),
 
   listFolders: () => request<Folder[]>('GET', '/folders'),
-  createFolder: (name: string, parentId: string | null) => request<Folder>('POST', '/folders', { name, parentId }),
-  updateFolder: (id: string, b: { name?: string; parentId?: string | null }) => request<Folder>('PATCH', `/folders/${id}`, b),
+  createFolder: (name: string, parentId: string | null) =>
+    request<Folder>('POST', '/folders', { name, parentId }),
+  updateFolder: (id: string, b: { name?: string; parentId?: string | null }) =>
+    request<Folder>('PATCH', `/folders/${id}`, b),
   deleteFolder: (id: string) => request<void>('DELETE', `/folders/${id}`),
 
   listVersions: (id: string) => request<DiagramVersion[]>('GET', `/diagrams/${id}/versions`),
-  saveVersion: (id: string, name: string) => request<{ id: string }>('POST', `/diagrams/${id}/versions`, { name }),
-  renameVersion: (id: string, vid: string, name: string) => request<void>('PATCH', `/diagrams/${id}/versions/${vid}`, { name }),
-  deleteVersion: (id: string, vid: string) => request<void>('DELETE', `/diagrams/${id}/versions/${vid}`),
-  restoreVersion: (id: string, vid: string) => request<void>('POST', `/diagrams/${id}/versions/${vid}/restore`),
+  saveVersion: (id: string, name: string) =>
+    request<{ id: string }>('POST', `/diagrams/${id}/versions`, { name }),
+  renameVersion: (id: string, vid: string, name: string) =>
+    request<void>('PATCH', `/diagrams/${id}/versions/${vid}`, { name }),
+  deleteVersion: (id: string, vid: string) =>
+    request<void>('DELETE', `/diagrams/${id}/versions/${vid}`),
+  restoreVersion: (id: string, vid: string) =>
+    request<void>('POST', `/diagrams/${id}/versions/${vid}/restore`),
 };

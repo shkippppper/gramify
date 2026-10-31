@@ -34,7 +34,10 @@ function svgDims(markup: string) {
   const svg = doc.documentElement;
   const vb = (svg.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
   if (vb.length === 4 && vb[2] && vb[3]) return { width: vb[2], height: vb[3] };
-  return { width: parseFloat(svg.getAttribute('width') ?? '800') || 800, height: parseFloat(svg.getAttribute('height') ?? '600') || 600 };
+  return {
+    width: parseFloat(svg.getAttribute('width') ?? '800') || 800,
+    height: parseFloat(svg.getAttribute('height') ?? '600') || 600,
+  };
 }
 
 export async function svgToPng(
@@ -62,7 +65,8 @@ export async function svgToPng(
   // A data: URL (not blob:) keeps the canvas untainted when labels use <foreignObject>.
   const bytes = new TextEncoder().encode(markup);
   let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   {
     img.src = `data:image/svg+xml;base64,${btoa(bin)}`;
     await img.decode();
@@ -76,7 +80,10 @@ export async function svgToPng(
     }
     ctx.drawImage(img, 0, 0, w, h);
     return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG encoding failed'))), 'image/png'),
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('PNG encoding failed'))),
+        'image/png',
+      ),
     );
   }
 }
@@ -93,7 +100,10 @@ export function fileName(title: string, ext: string) {
 }
 
 export function downloadSvg(svgMarkup: string, title: string, background: string | null) {
-  downloadBlob(fileName(title, 'svg'), new Blob([standaloneSvg(svgMarkup, background)], { type: 'image/svg+xml' }));
+  downloadBlob(
+    fileName(title, 'svg'),
+    new Blob([standaloneSvg(svgMarkup, background)], { type: 'image/svg+xml' }),
+  );
 }
 
 export function downloadText(text: string, name: string, type = 'text/plain') {

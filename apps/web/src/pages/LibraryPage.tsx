@@ -1,6 +1,16 @@
 import { useMutation } from '@tanstack/react-query';
 import type { DiagramSummary, Folder } from '@tidepool/shared';
-import { ChevronDown, FilePlus2, LayoutGrid, Link2, List, Menu as MenuIcon, Search, Shapes, Upload } from 'lucide-react';
+import {
+  ChevronDown,
+  FilePlus2,
+  LayoutGrid,
+  Link2,
+  List,
+  Menu as MenuIcon,
+  Search,
+  Shapes,
+  Upload,
+} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -16,12 +26,21 @@ import { api, type LibraryView, type SortKey } from '../lib/api';
 import { parseFile, parseImport } from '../lib/import';
 import { useLocalState } from '../lib/useLocalState';
 
-const VIEW_TITLES: Record<LibraryView, string> = { all: 'All diagrams', recent: 'Recent', starred: 'Starred', trash: 'Trash' };
+const VIEW_TITLES: Record<LibraryView, string> = {
+  all: 'All diagrams',
+  recent: 'Recent',
+  starred: 'Starred',
+  trash: 'Trash',
+};
 
 function folderPath(folders: Folder[], id: string | null): string {
   const byId = new Map(folders.map((f) => [f.id, f]));
   const parts: string[] = [];
-  for (let cur = id ? byId.get(id) : undefined, i = 0; cur && i < 20; cur = cur.parentId ? byId.get(cur.parentId) : undefined, i++) {
+  for (
+    let cur = id ? byId.get(id) : undefined, i = 0;
+    cur && i < 20;
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined, i++
+  ) {
     parts.unshift(cur.name);
   }
   return parts.join(' / ');
@@ -68,8 +87,14 @@ export function LibraryPage() {
     onError: (e) => toast.error((e as Error).message),
   });
 
-  const rename = useLibraryMutation((p: { id: string; title: string }) => api.updateDiagram(p.id, { title: p.title }));
-  const move = useLibraryMutation((p: { id: string; folderId: string | null }) => api.updateDiagram(p.id, { folderId: p.folderId }), 'Moved');
+  const rename = useLibraryMutation((p: { id: string; title: string }) =>
+    api.updateDiagram(p.id, { title: p.title }),
+  );
+  const move = useLibraryMutation(
+    (p: { id: string; folderId: string | null }) =>
+      api.updateDiagram(p.id, { folderId: p.folderId }),
+    'Moved',
+  );
   const duplicate = useLibraryMutation((id: string) => api.duplicateDiagram(id), 'Duplicated');
   const star = useLibraryMutation((d: DiagramSummary) => api.star(d.id, !d.starred));
   const trash = useLibraryMutation((id: string) => api.trashDiagram(id), 'Moved to trash');
@@ -92,7 +117,8 @@ export function LibraryPage() {
     deleteForever: (d) => setDeleting(d),
   };
 
-  const heading = view === 'all' && folderId ? folderPath(folderList, folderId) || 'Folder' : VIEW_TITLES[view];
+  const heading =
+    view === 'all' && folderId ? folderPath(folderList, folderId) || 'Folder' : VIEW_TITLES[view];
   const diagrams = list.data?.diagrams ?? [];
   const presence = list.data?.presence ?? {};
 
@@ -100,7 +126,12 @@ export function LibraryPage() {
     <div className="flex h-full flex-col">
       <TopBar
         left={
-          <button type="button" className="rounded p-1 text-muted hover:text-fg md:hidden" aria-label="Toggle sidebar" onClick={() => setSidebarOpen((o) => !o)}>
+          <button
+            type="button"
+            className="rounded p-1 text-muted hover:text-fg md:hidden"
+            aria-label="Toggle sidebar"
+            onClick={() => setSidebarOpen((o) => !o)}
+          >
             <MenuIcon size={18} />
           </button>
         }
@@ -125,7 +156,10 @@ export function LibraryPage() {
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <h1 className="mr-auto truncate text-lg font-semibold">{heading}</h1>
               <div className="relative">
-                <Search size={14} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted" />
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
+                />
                 <Input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -147,28 +181,62 @@ export function LibraryPage() {
                 </select>
               )}
               <div className="flex rounded-md border border-border">
-                <button type="button" aria-label="Grid view" aria-pressed={layout === 'grid'} className={`p-1.5 ${layout === 'grid' ? 'text-accent' : 'text-muted'}`} onClick={() => setLayout('grid')}>
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  aria-pressed={layout === 'grid'}
+                  className={`p-1.5 ${layout === 'grid' ? 'text-accent' : 'text-muted'}`}
+                  onClick={() => setLayout('grid')}
+                >
                   <LayoutGrid size={15} />
                 </button>
-                <button type="button" aria-label="List view" aria-pressed={layout === 'list'} className={`p-1.5 ${layout === 'list' ? 'text-accent' : 'text-muted'}`} onClick={() => setLayout('list')}>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  aria-pressed={layout === 'list'}
+                  className={`p-1.5 ${layout === 'list' ? 'text-accent' : 'text-muted'}`}
+                  onClick={() => setLayout('list')}
+                >
                   <List size={15} />
                 </button>
               </div>
               {view !== 'trash' && (
                 <div className="flex">
-                  <Button variant="primary" className="rounded-r-none" disabled={create.isPending} onClick={() => create.mutate({})}>
+                  <Button
+                    variant="primary"
+                    className="rounded-r-none"
+                    disabled={create.isPending}
+                    onClick={() => create.mutate({})}
+                  >
                     {create.isPending ? <Spinner /> : <FilePlus2 size={15} />} New diagram
                   </Button>
                   <Menu
                     trigger={(p) => (
-                      <Button variant="primary" className="rounded-l-none border-l border-white/20 px-2" aria-label="More ways to create" {...p}>
+                      <Button
+                        variant="primary"
+                        className="rounded-l-none border-l border-white/20 px-2"
+                        aria-label="More ways to create"
+                        {...p}
+                      >
                         <ChevronDown size={14} />
                       </Button>
                     )}
                     items={[
-                      { label: 'From a sample…', icon: <Shapes size={14} />, onSelect: () => setSamplesOpen(true) },
-                      { label: 'Import mermaid.live link or code…', icon: <Link2 size={14} />, onSelect: () => setImportOpen(true) },
-                      { label: 'Upload .mmd / .md file…', icon: <Upload size={14} />, onSelect: () => fileRef.current?.click() },
+                      {
+                        label: 'From a sample…',
+                        icon: <Shapes size={14} />,
+                        onSelect: () => setSamplesOpen(true),
+                      },
+                      {
+                        label: 'Import mermaid.live link or code…',
+                        icon: <Link2 size={14} />,
+                        onSelect: () => setImportOpen(true),
+                      },
+                      {
+                        label: 'Upload .mmd / .md file…',
+                        icon: <Upload size={14} />,
+                        onSelect: () => fileRef.current?.click(),
+                      },
                     ]}
                   />
                 </div>
@@ -197,11 +265,21 @@ export function LibraryPage() {
                 <Spinner />
               </div>
             ) : list.isError ? (
-              <p className="py-24 text-center text-sm text-danger">{(list.error as Error).message}</p>
+              <p className="py-24 text-center text-sm text-danger">
+                {(list.error as Error).message}
+              </p>
             ) : diagrams.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-24 text-center">
                 <p className="text-sm text-muted">
-                  {q ? 'No diagrams match your search.' : view === 'trash' ? 'Trash is empty.' : view === 'starred' ? 'Star diagrams to find them here.' : view === 'recent' ? 'Diagrams you open show up here.' : 'No diagrams here yet.'}
+                  {q
+                    ? 'No diagrams match your search.'
+                    : view === 'trash'
+                      ? 'Trash is empty.'
+                      : view === 'starred'
+                        ? 'Star diagrams to find them here.'
+                        : view === 'recent'
+                          ? 'Diagrams you open show up here.'
+                          : 'No diagrams here yet.'}
                 </p>
                 {view === 'all' && !q && (
                   <Button variant="primary" onClick={() => create.mutate({})}>
@@ -212,13 +290,27 @@ export function LibraryPage() {
             ) : layout === 'grid' ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {diagrams.map((d) => (
-                  <DiagramCard key={d.id} d={d} folder={d.folderId ? folderById.get(d.folderId) : undefined} present={presence[d.id] ?? []} actions={actions} layout="grid" />
+                  <DiagramCard
+                    key={d.id}
+                    d={d}
+                    folder={d.folderId ? folderById.get(d.folderId) : undefined}
+                    present={presence[d.id] ?? []}
+                    actions={actions}
+                    layout="grid"
+                  />
                 ))}
               </div>
             ) : (
               <div className="flex flex-col">
                 {diagrams.map((d) => (
-                  <DiagramCard key={d.id} d={d} folder={d.folderId ? folderById.get(d.folderId) : undefined} present={presence[d.id] ?? []} actions={actions} layout="list" />
+                  <DiagramCard
+                    key={d.id}
+                    d={d}
+                    folder={d.folderId ? folderById.get(d.folderId) : undefined}
+                    present={presence[d.id] ?? []}
+                    actions={actions}
+                    layout="list"
+                  />
                 ))}
               </div>
             )}
@@ -249,11 +341,17 @@ export function LibraryPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (renaming && renameValue.trim()) rename.mutate({ id: renaming.id, title: renameValue.trim() });
+            if (renaming && renameValue.trim())
+              rename.mutate({ id: renaming.id, title: renameValue.trim() });
             setRenaming(null);
           }}
         >
-          <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} className="w-full" aria-label="Title" />
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            className="w-full"
+            aria-label="Title"
+          />
         </form>
       </Dialog>
 
@@ -308,7 +406,11 @@ export function LibraryPage() {
               onClick={() => {
                 try {
                   const parsed = parseImport(importText);
-                  create.mutate({ code: parsed.code, config: parsed.config, title: 'Imported diagram' });
+                  create.mutate({
+                    code: parsed.code,
+                    config: parsed.config,
+                    title: 'Imported diagram',
+                  });
                   setImportOpen(false);
                   setImportText('');
                 } catch (e) {
@@ -332,7 +434,12 @@ export function LibraryPage() {
         />
       </Dialog>
 
-      <Dialog open={samplesOpen} onClose={() => setSamplesOpen(false)} title="New diagram from a sample" width="max-w-4xl">
+      <Dialog
+        open={samplesOpen}
+        onClose={() => setSamplesOpen(false)}
+        title="New diagram from a sample"
+        width="max-w-4xl"
+      >
         <div className="grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 md:grid-cols-4">
           {SAMPLE_FAMILIES.map((fam) => (
             <button
@@ -344,8 +451,14 @@ export function LibraryPage() {
                 create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
               }}
             >
-              <Thumbnail code={fam.examples[0]!.code} config="{}" className="aspect-[4/3] bg-bg p-2" />
-              <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">{fam.name}</span>
+              <Thumbnail
+                code={fam.examples[0]!.code}
+                config="{}"
+                className="aspect-[4/3] bg-bg p-2"
+              />
+              <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
+                {fam.name}
+              </span>
             </button>
           ))}
         </div>
@@ -371,7 +484,8 @@ export function LibraryPage() {
         }
       >
         <p className="text-sm text-muted">
-          <strong className="text-fg">{deleting?.title}</strong> and its version history will be permanently deleted.
+          <strong className="text-fg">{deleting?.title}</strong> and its version history will be
+          permanently deleted.
         </p>
       </Dialog>
     </div>

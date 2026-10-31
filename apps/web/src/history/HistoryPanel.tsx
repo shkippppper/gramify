@@ -3,7 +3,17 @@ import type { DiagramVersion } from '@tidepool/shared';
 import { colorForId } from '@tidepool/shared';
 import clsx from 'clsx';
 import { diffLines } from 'diff';
-import { Bookmark, Clock, History, MoreHorizontal, Pencil, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import {
+  Bookmark,
+  Clock,
+  History,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, Button, Dialog, IconButton, Input, Menu, Spinner } from '../components/ui';
@@ -25,14 +35,20 @@ function dayLabel(iso: string) {
   const yesterday = new Date(Date.now() - 86400000);
   if (d.toDateString() === today.toDateString()) return 'Today';
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
 }
 
 export function DiffView({ from, to }: { from: string; to: string }) {
   const parts = useMemo(() => diffLines(from, to), [from, to]);
   const added = parts.filter((p) => p.added).reduce((n, p) => n + (p.count ?? 0), 0);
   const removed = parts.filter((p) => p.removed).reduce((n, p) => n + (p.count ?? 0), 0);
-  if (!added && !removed) return <p className="text-xs text-muted">Identical to the current diagram.</p>;
+  if (!added && !removed)
+    return <p className="text-xs text-muted">Identical to the current diagram.</p>;
   return (
     <div>
       <p className="mb-1 text-xs text-muted">
@@ -60,7 +76,15 @@ export function DiffView({ from, to }: { from: string; to: string }) {
             );
           }
           return (
-            <span key={i} className={clsx('block', p.added ? 'bg-green-500/15 text-green-700 dark:text-green-300' : 'bg-danger/12 text-danger')}>
+            <span
+              key={i}
+              className={clsx(
+                'block',
+                p.added
+                  ? 'bg-green-500/15 text-green-700 dark:text-green-300'
+                  : 'bg-danger/12 text-danger',
+              )}
+            >
               {lines.map((l) => `${p.added ? '+' : '−'} ${l}\n`)}
             </span>
           );
@@ -70,10 +94,21 @@ export function DiffView({ from, to }: { from: string; to: string }) {
   );
 }
 
-export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing, onPreview, onClose }: Props) {
+export function HistoryPanel({
+  diagramId,
+  currentCode,
+  currentConfig,
+  previewing,
+  onPreview,
+  onClose,
+}: Props) {
   const qc = useQueryClient();
   const key = ['versions', diagramId];
-  const versions = useQuery({ queryKey: key, queryFn: () => api.listVersions(diagramId), refetchInterval: 30_000 });
+  const versions = useQuery({
+    queryKey: key,
+    queryFn: () => api.listVersions(diagramId),
+    refetchInterval: 30_000,
+  });
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState('');
   const [renaming, setRenaming] = useState<DiagramVersion | null>(null);
@@ -91,7 +126,8 @@ export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing
     onError: (e) => toast.error((e as Error).message),
   });
   const rename = useMutation({
-    mutationFn: ({ v, n }: { v: DiagramVersion; n: string }) => api.renameVersion(diagramId, v.id, n),
+    mutationFn: ({ v, n }: { v: DiagramVersion; n: string }) =>
+      api.renameVersion(diagramId, v.id, n),
     onSuccess: () => {
       setRenaming(null);
       void invalidate();
@@ -154,56 +190,123 @@ export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing
           </div>
         ) : !versions.data?.length ? (
           <p className="px-2 py-8 text-center text-xs text-muted">
-            No versions yet. Snapshots are saved automatically every few minutes while people edit, or save one now.
+            No versions yet. Snapshots are saved automatically every few minutes while people edit,
+            or save one now.
           </p>
         ) : (
           groups.map((g) => (
             <div key={g.day} className="mb-3">
-              <h3 className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">{g.day}</h3>
+              <h3 className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">
+                {g.day}
+              </h3>
               {g.items.map((v) => {
                 const active = previewing?.id === v.id;
-                const people = v.contributors.length ? v.contributors : v.createdBy ? [v.createdBy] : [];
+                const people = v.contributors.length
+                  ? v.contributors
+                  : v.createdBy
+                    ? [v.createdBy]
+                    : [];
                 return (
-                  <div key={v.id} className={clsx('group rounded-lg border', active ? 'border-accent bg-accent/5' : 'border-transparent hover:bg-surface-2')}>
+                  <div
+                    key={v.id}
+                    className={clsx(
+                      'group rounded-lg border',
+                      active
+                        ? 'border-accent bg-accent/5'
+                        : 'border-transparent hover:bg-surface-2',
+                    )}
+                  >
                     <div className="flex items-start gap-2 px-2 py-1.5">
-                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onPreview(active ? null : v)} data-testid="version-item">
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => onPreview(active ? null : v)}
+                        data-testid="version-item"
+                      >
                         <div className="flex items-center gap-1.5 text-sm">
-                          {v.kind === 'named' ? <Bookmark size={13} className="shrink-0 text-accent" /> : v.kind === 'restore' ? <RotateCcw size={13} className="shrink-0 text-muted" /> : <Clock size={13} className="shrink-0 text-muted" />}
-                          <span className={clsx('truncate', v.kind === 'named' && 'font-medium')}>{v.name ?? formatDateTime(v.createdAt)}</span>
+                          {v.kind === 'named' ? (
+                            <Bookmark size={13} className="shrink-0 text-accent" />
+                          ) : v.kind === 'restore' ? (
+                            <RotateCcw size={13} className="shrink-0 text-muted" />
+                          ) : (
+                            <Clock size={13} className="shrink-0 text-muted" />
+                          )}
+                          <span className={clsx('truncate', v.kind === 'named' && 'font-medium')}>
+                            {v.name ?? formatDateTime(v.createdAt)}
+                          </span>
                         </div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
-                          <span title={new Date(v.createdAt).toLocaleString()}>{v.name ? formatDateTime(v.createdAt) : timeAgo(v.createdAt)}</span>
+                          <span title={new Date(v.createdAt).toLocaleString()}>
+                            {v.name ? formatDateTime(v.createdAt) : timeAgo(v.createdAt)}
+                          </span>
                           {people.length > 0 && (
                             <span className="flex items-center gap-1">
                               ·
                               <span className="flex -space-x-1">
                                 {people.slice(0, 4).map((u) => (
-                                  <Avatar key={u.id} name={u.name} image={u.image} color={colorForId(u.id)} size={16} />
+                                  <Avatar
+                                    key={u.id}
+                                    name={u.name}
+                                    image={u.image}
+                                    color={colorForId(u.id)}
+                                    size={16}
+                                  />
                                 ))}
                               </span>
-                              <span className="truncate">{people.length === 1 ? people[0]!.name.split(' ')[0] : `${people.length} people`}</span>
+                              <span className="truncate">
+                                {people.length === 1
+                                  ? people[0]!.name.split(' ')[0]
+                                  : `${people.length} people`}
+                              </span>
                             </span>
                           )}
                         </div>
                       </button>
                       <Menu
                         trigger={(p) => (
-                          <IconButton label="Version actions" className="size-6 opacity-0 group-hover:opacity-100 aria-expanded:opacity-100" {...p}>
+                          <IconButton
+                            label="Version actions"
+                            className="size-6 opacity-0 group-hover:opacity-100 aria-expanded:opacity-100"
+                            {...p}
+                          >
                             <MoreHorizontal size={14} />
                           </IconButton>
                         )}
                         items={[
-                          { label: 'Restore this version', icon: <RotateCcw size={14} />, onSelect: () => setConfirmRestore(v) },
-                          { label: v.name ? 'Rename' : 'Name this version', icon: <Pencil size={14} />, onSelect: () => { setName(v.name ?? ''); setRenaming(v); } },
-                          { label: 'Delete', icon: <Trash2 size={14} />, danger: true, onSelect: () => remove.mutate(v) },
+                          {
+                            label: 'Restore this version',
+                            icon: <RotateCcw size={14} />,
+                            onSelect: () => setConfirmRestore(v),
+                          },
+                          {
+                            label: v.name ? 'Rename' : 'Name this version',
+                            icon: <Pencil size={14} />,
+                            onSelect: () => {
+                              setName(v.name ?? '');
+                              setRenaming(v);
+                            },
+                          },
+                          {
+                            label: 'Delete',
+                            icon: <Trash2 size={14} />,
+                            danger: true,
+                            onSelect: () => remove.mutate(v),
+                          },
                         ]}
                       />
                     </div>
                     {active && (
                       <div className="space-y-2 px-2 pb-2">
                         <DiffView from={currentCode} to={v.code} />
-                        {v.config !== currentConfig && <p className="text-xs text-muted">The config also differs.</p>}
-                        <Button size="sm" variant="primary" className="w-full" onClick={() => setConfirmRestore(v)}>
+                        {v.config !== currentConfig && (
+                          <p className="text-xs text-muted">The config also differs.</p>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          className="w-full"
+                          onClick={() => setConfirmRestore(v)}
+                        >
                           <RotateCcw size={13} /> Restore this version
                         </Button>
                       </div>
@@ -223,15 +326,32 @@ export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing
         footer={
           <>
             <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
-            <Button variant="primary" disabled={!name.trim() || save.isPending} onClick={() => save.mutate(name.trim())}>
+            <Button
+              variant="primary"
+              disabled={!name.trim() || save.isPending}
+              onClick={() => save.mutate(name.trim())}
+            >
               Save
             </Button>
           </>
         }
       >
-        <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) save.mutate(name.trim()); }}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Reviewed with platform team" className="w-full" aria-label="Version name" />
-          <p className="mt-2 text-xs text-muted">Named versions are kept forever. Automatic snapshots are thinned out over time.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) save.mutate(name.trim());
+          }}
+        >
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Reviewed with platform team"
+            className="w-full"
+            aria-label="Version name"
+          />
+          <p className="mt-2 text-xs text-muted">
+            Named versions are kept forever. Automatic snapshots are thinned out over time.
+          </p>
         </form>
       </Dialog>
       <Dialog
@@ -241,14 +361,28 @@ export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing
         footer={
           <>
             <Button onClick={() => setRenaming(null)}>Cancel</Button>
-            <Button variant="primary" disabled={!name.trim()} onClick={() => renaming && rename.mutate({ v: renaming, n: name.trim() })}>
+            <Button
+              variant="primary"
+              disabled={!name.trim()}
+              onClick={() => renaming && rename.mutate({ v: renaming, n: name.trim() })}
+            >
               Save
             </Button>
           </>
         }
       >
-        <form onSubmit={(e) => { e.preventDefault(); if (renaming && name.trim()) rename.mutate({ v: renaming, n: name.trim() }); }}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} className="w-full" aria-label="Version name" />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (renaming && name.trim()) rename.mutate({ v: renaming, n: name.trim() });
+          }}
+        >
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full"
+            aria-label="Version name"
+          />
         </form>
       </Dialog>
       <Dialog
@@ -258,15 +392,23 @@ export function HistoryPanel({ diagramId, currentCode, currentConfig, previewing
         footer={
           <>
             <Button onClick={() => setConfirmRestore(null)}>Cancel</Button>
-            <Button variant="primary" disabled={restore.isPending} onClick={() => confirmRestore && restore.mutate(confirmRestore)}>
+            <Button
+              variant="primary"
+              disabled={restore.isPending}
+              onClick={() => confirmRestore && restore.mutate(confirmRestore)}
+            >
               {restore.isPending ? <Spinner /> : <RotateCcw size={13} />} Restore
             </Button>
           </>
         }
       >
         <p className="text-sm text-muted">
-          The diagram will change to <strong className="text-fg">{confirmRestore?.name ?? (confirmRestore && formatDateTime(confirmRestore.createdAt))}</strong> for everyone
-          editing it. The current state is saved as a version first, so you can undo this.
+          The diagram will change to{' '}
+          <strong className="text-fg">
+            {confirmRestore?.name ?? (confirmRestore && formatDateTime(confirmRestore.createdAt))}
+          </strong>{' '}
+          for everyone editing it. The current state is saved as a version first, so you can undo
+          this.
         </p>
       </Dialog>
     </div>

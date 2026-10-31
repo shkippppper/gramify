@@ -22,8 +22,16 @@ const SLOW_DEBOUNCE_MS = 1000;
  * Renders mermaid code reactively. Fast diagrams re-render on every change;
  * once a render takes >150ms we switch to a 1s debounce (like mermaid.live).
  */
-export function useDiagramRender(code: string, configText: string, dark: boolean): DiagramRenderState {
-  const [state, setState] = useState<DiagramRenderState>({ result: null, error: null, pending: true });
+export function useDiagramRender(
+  code: string,
+  configText: string,
+  dark: boolean,
+): DiagramRenderState {
+  const [state, setState] = useState<DiagramRenderState>({
+    result: null,
+    error: null,
+    pending: true,
+  });
   const slow = useRef(false);
   const seq = useRef(0);
 
@@ -34,7 +42,15 @@ export function useDiagramRender(code: string, configText: string, dark: boolean
       const cfg = parseConfig(configText);
       if (!cfg.ok) {
         if (id === seq.current) {
-          setState((s) => ({ ...s, pending: false, error: { source: 'config', message: cfg.error, line: configErrorLine(cfg.error, configText) } }));
+          setState((s) => ({
+            ...s,
+            pending: false,
+            error: {
+              source: 'config',
+              message: cfg.error,
+              line: configErrorLine(cfg.error, configText),
+            },
+          }));
         }
         return;
       }
@@ -44,7 +60,11 @@ export function useDiagramRender(code: string, configText: string, dark: boolean
         slow.current = res.ms > SLOW_RENDER_MS;
         setState({ result: res, error: null, pending: false });
       } else {
-        setState((s) => ({ ...s, pending: false, error: { source: 'code', message: res.error, line: res.line } }));
+        setState((s) => ({
+          ...s,
+          pending: false,
+          error: { source: 'code', message: res.error, line: res.line },
+        }));
       }
     };
     if (slow.current) {

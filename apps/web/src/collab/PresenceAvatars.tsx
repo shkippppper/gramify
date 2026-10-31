@@ -17,7 +17,8 @@ export function PresenceAvatars({
   useAwarenessStates<PresenceState>(session.awareness);
   // One avatar per user (a user may have several tabs open).
   const byUser = new Map<string, [number, PresenceState]>();
-  for (const [id, st] of remotePeers(session)) if (!byUser.has(st.user.id)) byUser.set(st.user.id, [id, st]);
+  for (const [id, st] of remotePeers(session))
+    if (!byUser.has(st.user.id)) byUser.set(st.user.id, [id, st]);
   const peers = [...byUser.values()];
   if (!peers.length) return null;
   const shown = peers.slice(0, 5);
@@ -28,7 +29,10 @@ export function PresenceAvatars({
           key={id}
           type="button"
           onClick={() => onFollow(following === id ? null : id)}
-          className={clsx('rounded-full transition-transform hover:z-10 hover:scale-110', following === id && 'z-10 scale-110')}
+          className={clsx(
+            'rounded-full transition-transform hover:z-10 hover:scale-110',
+            following === id && 'z-10 scale-110',
+          )}
           title={`${st.user.name} (${st.user.email}) · editing ${st.tab === 'config' ? 'config' : 'code'}\n${following === id ? 'Click to stop following' : 'Click to follow'}`}
           aria-label={`${following === id ? 'Stop following' : 'Follow'} ${st.user.name}`}
           aria-pressed={following === id}

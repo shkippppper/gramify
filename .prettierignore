@@ -1,3 +1,6 @@
 pnpm-lock.yaml
 dist
 apps/web/src/editor/mermaidLanguage.ts
+apps/web/src/editor/mermaid-config.schema.json
+playwright-report
+test-results

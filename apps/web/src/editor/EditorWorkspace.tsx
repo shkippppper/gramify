@@ -1,6 +1,13 @@
 import clsx from 'clsx';
 import { BookOpen } from 'lucide-react';
-import { useCallback, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import {
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { replaceText, useYText, type DiagramSession } from '../collab/session';
 import { Collapsible, Dialog, Button, Tabs } from '../components/ui';
@@ -79,10 +86,19 @@ export function EditorWorkspace(props: Props) {
     setTab('code');
   };
 
-  const layout = useDefaultLayout({ id: side ? 'tp-layout-3' : 'tp-layout-2', storage: localStorage });
+  const layout = useDefaultLayout({
+    id: side ? 'tp-layout-3' : 'tp-layout-2',
+    storage: localStorage,
+  });
 
-  const codeMarker = liveError?.source === 'code' && liveError.line ? { line: liveError.line, message: liveError.message } : null;
-  const configMarker = liveError?.source === 'config' && liveError.line ? { line: liveError.line, message: liveError.message } : null;
+  const codeMarker =
+    liveError?.source === 'code' && liveError.line
+      ? { line: liveError.line, message: liveError.message }
+      : null;
+  const configMarker =
+    liveError?.source === 'config' && liveError.line
+      ? { line: liveError.line, message: liveError.message }
+      : null;
 
   const editorPane = (
     <div className="flex h-full min-h-0 flex-col bg-surface">
@@ -121,14 +137,27 @@ export function EditorWorkspace(props: Props) {
       <ErrorBar error={liveError} />
       <div className="max-h-[45%] shrink-0 overflow-auto">
         {!session.readOnly && (
-          <Collapsible title="Sample diagrams" open={samplesOpen} onToggle={() => setSamplesOpen((o) => !o)}>
+          <Collapsible
+            title="Sample diagrams"
+            open={samplesOpen}
+            onToggle={() => setSamplesOpen((o) => !o)}
+          >
             <Samples
-              onPick={(c, t) => (confirmSampleReplace && liveCode.trim() ? setPendingSample({ code: c, title: t }) : loadSample(c))}
+              onPick={(c, t) =>
+                confirmSampleReplace && liveCode.trim()
+                  ? setPendingSample({ code: c, title: t })
+                  : loadSample(c)
+              }
             />
           </Collapsible>
         )}
         <Collapsible title="Actions" open={actionsOpen} onToggle={() => setActionsOpen((o) => !o)}>
-          <Actions getSvg={() => innerPreviewRef.current?.getExportSvg() ?? null} code={code} config={config} title={title} />
+          <Actions
+            getSvg={() => innerPreviewRef.current?.getExportSvg() ?? null}
+            code={code}
+            config={config}
+            title={title}
+          />
         </Collapsible>
       </div>
     </div>
@@ -166,8 +195,12 @@ export function EditorWorkspace(props: Props) {
               ]}
             />
           </div>
-          <div className={clsx('min-h-0 flex-1', mobileView !== 'edit' && 'hidden')}>{editorPane}</div>
-          <div className={clsx('min-h-0 flex-1', mobileView !== 'view' && 'hidden')}>{previewPane}</div>
+          <div className={clsx('min-h-0 flex-1', mobileView !== 'edit' && 'hidden')}>
+            {editorPane}
+          </div>
+          <div className={clsx('min-h-0 flex-1', mobileView !== 'view' && 'hidden')}>
+            {previewPane}
+          </div>
         </div>
       ) : (
         <Group
@@ -214,8 +247,8 @@ export function EditorWorkspace(props: Props) {
         }
       >
         <p className="text-sm text-muted">
-          Load <strong className="text-fg">{pendingSample?.title}</strong>? This replaces the code for everyone in this
-          diagram. You can get the old version back from History.
+          Load <strong className="text-fg">{pendingSample?.title}</strong>? This replaces the code
+          for everyone in this diagram. You can get the old version back from History.
         </p>
       </Dialog>
     </div>

@@ -1,6 +1,7 @@
 # Research notes (2026-10-31)
 
 ## Mermaid Live Editor (mermaid.live), our parity target
+
 Source: github.com/mermaid-js/mermaid-live-editor (MIT). Checked at app version 2.0.67, which uses mermaid 12.2.0.
 
 - **Layout:**
@@ -36,14 +37,15 @@ Source: github.com/mermaid-js/mermaid-live-editor (MIT). Checked at app version 
 - **What it lacks:** accounts, server storage, collaboration, real autocomplete.
 
 ## Mermaid Chart (the paid product)
+
 - **Tiers:**
 
-  | Tier | Price | Gates |
-  |---|---|---|
-  | Free | $0 | Few diagrams |
-  | Plus | $10/user/mo | View and comment collaboration only |
+  | Tier        | Price       | Gates                                             |
+  | ----------- | ----------- | ------------------------------------------------- |
+  | Free        | $0          | Few diagrams                                      |
+  | Plus        | $10/user/mo | View and comment collaboration only               |
   | **Premium** | $20/user/mo | **Real-time co-editing**, roles, external sharing |
-  | Enterprise | Custom | SSO/SAML |
+  | Enterprise  | Custom      | SSO/SAML                                          |
 
 - **Features:**
   - Teams → projects → diagrams.
@@ -56,6 +58,7 @@ Source: github.com/mermaid-js/mermaid-live-editor (MIT). Checked at app version 
 - **Live cursors and presence:** their public docs don't describe this UX. Our design (code carets, canvas pointers, avatar stack, follow mode) is our own.
 
 ## Mermaid library 12.2.0
+
 - **Diagram keywords:**
   - `flowchart`/`graph`, `sequenceDiagram`, `classDiagram`, `stateDiagram`, `erDiagram`
   - `journey`, `gantt`, `pie`, `quadrantChart`, `requirementDiagram`, `gitGraph`
@@ -66,6 +69,7 @@ Source: github.com/mermaid-js/mermaid-live-editor (MIT). Checked at app version 
 - **Themes:** default, base, dark, forest, neutral, neo, neo-dark, redux, redux-dark, redux-color, redux-dark-color.
 
 ## Stack facts
+
 - **Realtime:**
   - yjs 13.6.33 (stay on 13; 14 is beta), y-monaco 0.1.6, y-protocols 1.0.7.
   - @hocuspocus/* 4.8.0 (Node 22 or newer).

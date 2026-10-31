@@ -81,7 +81,9 @@ const SECTION_ALIASES: Record<string, string> = {
 };
 
 const themeOf = (section: unknown) =>
-  section && typeof section === 'object' && typeof (section as { theme?: unknown }).theme === 'string'
+  section &&
+  typeof section === 'object' &&
+  typeof (section as { theme?: unknown }).theme === 'string'
     ? ((section as { theme: string }).theme as string)
     : undefined;
 
@@ -94,7 +96,11 @@ export function defaultThemeFor(diagramType: string | undefined) {
 }
 
 export const darkVariantOf = (theme: string) =>
-  theme.includes('dark') ? theme : theme.startsWith('redux') ? theme.replace('redux', 'redux-dark') : 'dark';
+  theme.includes('dark')
+    ? theme
+    : theme.startsWith('redux')
+      ? theme.replace('redux', 'redux-dark')
+      : 'dark';
 
 const managedThemes = new Set<string>();
 for (const t of [globalDefaultTheme, ...Object.values(defaultMermaidConfig).map(themeOf)]) {
@@ -108,7 +114,11 @@ export const isManagedTheme = (theme: unknown) =>
   theme === undefined || (typeof theme === 'string' && managedThemes.has(theme));
 
 /** Effective config for rendering: the user's config + local dark-mode theme swap. */
-export function effectiveConfig(config: MermaidConfig, diagramType: string | undefined, dark: boolean) {
+export function effectiveConfig(
+  config: MermaidConfig,
+  diagramType: string | undefined,
+  dark: boolean,
+) {
   const out: MermaidConfig = { ...config, startOnLoad: false, securityLevel: 'strict' };
   if (isManagedTheme(config.theme)) {
     const base = defaultThemeFor(diagramType);

@@ -15,7 +15,11 @@ export interface DiagramSession {
   readOnly: boolean;
 }
 
-export function sessionFromDoc(doc: Y.Doc, awareness: Awareness | null = null, readOnly = false): DiagramSession {
+export function sessionFromDoc(
+  doc: Y.Doc,
+  awareness: Awareness | null = null,
+  readOnly = false,
+): DiagramSession {
   return {
     doc,
     code: doc.getText(YDOC.code),

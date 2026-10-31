@@ -19,7 +19,9 @@ const queryClient = new QueryClient({
 
 function ThemedToaster() {
   const { dark } = useTheme();
-  return <Toaster theme={dark ? 'dark' : 'light'} position="bottom-center" richColors closeButton />;
+  return (
+    <Toaster theme={dark ? 'dark' : 'light'} position="bottom-center" richColors closeButton />
+  );
 }
 
 createRoot(document.getElementById('root')!).render(

@@ -21,7 +21,10 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
-  console.error('Invalid environment:\n' + parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n'));
+  console.error(
+    'Invalid environment:\n' +
+      parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n'),
+  );
   process.exit(1);
 }
 

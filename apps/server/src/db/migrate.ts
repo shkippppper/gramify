@@ -7,7 +7,9 @@ import { migrations } from './migrations.ts';
 export async function migrate() {
   const { runMigrations, toBeCreated, toBeAdded } = await getMigrations(authOptions);
   if (toBeCreated.length || toBeAdded.length) {
-    console.log(`[migrate] auth schema: +${toBeCreated.length} tables, +${toBeAdded.length} columns`);
+    console.log(
+      `[migrate] auth schema: +${toBeCreated.length} tables, +${toBeAdded.length} columns`,
+    );
     await runMigrations();
   }
   const migrator = new Migrator({ db, provider: { getMigrations: async () => migrations } });

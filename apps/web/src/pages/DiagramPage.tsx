@@ -24,15 +24,39 @@ import { formatDateTime } from '../lib/time';
 import { useLocalState } from '../lib/useLocalState';
 import type { PreviewHandle, SharedView } from '../render/Preview';
 
-function StatusBadge({ status, synced, unsynced }: { status: CollabStatus; synced: boolean; unsynced: number }) {
+function StatusBadge({
+  status,
+  synced,
+  unsynced,
+}: {
+  status: CollabStatus;
+  synced: boolean;
+  unsynced: number;
+}) {
   const label =
-    status === 'connected' ? (synced && unsynced === 0 ? 'Saved' : 'Saving…') : status === 'connecting' ? 'Connecting…' : 'Offline: changes kept locally';
+    status === 'connected'
+      ? synced && unsynced === 0
+        ? 'Saved'
+        : 'Saving…'
+      : status === 'connecting'
+        ? 'Connecting…'
+        : 'Offline: changes kept locally';
   return (
-    <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" data-testid="status" data-status={status}>
+    <span
+      className="hidden items-center gap-1.5 text-xs text-muted sm:flex"
+      data-testid="status"
+      data-status={status}
+    >
       <span
         className={clsx(
           'size-2 rounded-full',
-          status === 'connected' ? (unsynced ? 'bg-amber-500' : 'bg-green-500') : status === 'connecting' ? 'animate-pulse bg-amber-500' : 'bg-danger',
+          status === 'connected'
+            ? unsynced
+              ? 'bg-amber-500'
+              : 'bg-green-500'
+            : status === 'connecting'
+              ? 'animate-pulse bg-amber-500'
+              : 'bg-danger',
         )}
       />
       {label}
@@ -77,7 +101,12 @@ export function DiagramPage() {
   const { id } = useParams<{ id: string }>();
   const me = useMe();
   const qc = useQueryClient();
-  const summary = useQuery({ queryKey: ['diagram', id], queryFn: () => api.getDiagram(id!), enabled: !!id, retry: false });
+  const summary = useQuery({
+    queryKey: ['diagram', id],
+    queryFn: () => api.getDiagram(id!),
+    enabled: !!id,
+    retry: false,
+  });
   const folders = useQuery({ queryKey: ['folders'], queryFn: api.listFolders });
   const collab = useCollab(summary.data && !summary.data.deletedAt ? id : undefined, me.data);
   const session = collab.session;
@@ -88,6 +117,21 @@ export function DiagramPage() {
   const previewRef = useRef<PreviewHandle>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
+  // Cmd/Ctrl+S: everything is saved automatically, so offer a named version instead of the browser dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        setHistoryOpen(true);
+        toast.message('Changes save automatically', {
+          description: 'Use “Save version” to name this point in history.',
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setHistoryOpen]);
+
   useEffect(() => {
     // Keep the library list fresh when we leave.
     return () => void qc.invalidateQueries({ queryKey: ['diagrams'] });
@@ -95,7 +139,10 @@ export function DiagramPage() {
 
   // ---- presence: pointer + view broadcast ----
   const lastView = useRef(0);
-  const onPointer = useCallback((p: { x: number; y: number } | null) => session?.awareness?.setLocalStateField('pointer', p), [session]);
+  const onPointer = useCallback(
+    (p: { x: number; y: number } | null) => session?.awareness?.setLocalStateField('pointer', p),
+    [session],
+  );
   const onUserView = useCallback(
     (view: SharedView) => {
       setFollowing(null);
@@ -152,9 +199,16 @@ export function DiagramPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="text-sm text-muted">
-          {summary.data?.deletedAt ? 'This diagram is in the trash.' : notFound ? 'This diagram does not exist.' : (summary.error as Error).message}
+          {summary.data?.deletedAt
+            ? 'This diagram is in the trash.'
+            : notFound
+              ? 'This diagram does not exist.'
+              : (summary.error as Error).message}
         </p>
-        <Link to={summary.data?.deletedAt ? '/?view=trash' : '/'} className="text-sm text-accent hover:underline">
+        <Link
+          to={summary.data?.deletedAt ? '/?view=trash' : '/'}
+          className="text-sm text-accent hover:underline"
+        >
           Back to library
         </Link>
       </div>
@@ -162,7 +216,9 @@ export function DiagramPage() {
   }
   const d = summary.data!;
   if (collab.error) {
-    return <div className="grid h-full place-items-center p-6 text-sm text-danger">{collab.error}</div>;
+    return (
+      <div className="grid h-full place-items-center p-6 text-sm text-danger">{collab.error}</div>
+    );
   }
   if (!session || !collab.synced) {
     return (
@@ -190,18 +246,30 @@ export function DiagramPage() {
           <TopBar
             left={
               <>
-                <Link to={folder ? `/?folder=${folder.id}` : '/'} className="hidden shrink-0 items-center gap-1 text-sm text-muted hover:text-fg md:flex">
+                <Link
+                  to={folder ? `/?folder=${folder.id}` : '/'}
+                  className="hidden shrink-0 items-center gap-1 text-sm text-muted hover:text-fg md:flex"
+                >
                   {folder?.name ?? 'Library'} <ChevronRight size={14} />
                 </Link>
                 <TitleInput session={session} fallback={d.title} />
-                <StatusBadge status={collab.status} synced={collab.synced} unsynced={collab.unsynced} />
+                <StatusBadge
+                  status={collab.status}
+                  synced={collab.synced}
+                  unsynced={collab.unsynced}
+                />
               </>
             }
             right={
               <>
                 <PresenceAvatars session={session} following={following} onFollow={setFollowing} />
                 <ShareMenu id={d.id} session={session} />
-                <Button size="sm" variant={historyOpen ? 'secondary' : 'ghost'} onClick={() => setHistoryOpen((o) => !o)} aria-pressed={historyOpen}>
+                <Button
+                  size="sm"
+                  variant={historyOpen ? 'secondary' : 'ghost'}
+                  onClick={() => setHistoryOpen((o) => !o)}
+                  aria-pressed={historyOpen}
+                >
                   <History size={14} /> <span className="hidden lg:inline">History</span>
                 </Button>
                 <ThemeToggle />
@@ -229,7 +297,8 @@ export function DiagramPage() {
             <Banner tone="accent">
               <Eye size={14} className="shrink-0 text-accent" />
               <span className="truncate" title="The editor still shows the live diagram">
-                Previewing <strong>{previewing.name ?? 'version'}</strong> · {formatDateTime(previewing.createdAt)}
+                Previewing <strong>{previewing.name ?? 'version'}</strong> ·{' '}
+                {formatDateTime(previewing.createdAt)}
               </span>
               <Button size="sm" onClick={() => setPreviewing(null)}>
                 Back to live
@@ -254,7 +323,9 @@ function Banner({ tone, children }: { tone: 'accent' | 'follow'; children: React
     <div
       className={clsx(
         'pointer-events-auto absolute top-3 left-3 z-20 flex max-w-[calc(100%-13rem)] items-center gap-2 rounded-lg border px-3 py-1.5 text-xs whitespace-nowrap shadow-sm',
-        tone === 'accent' ? 'border-accent/40 bg-surface text-fg' : 'border-accent bg-accent text-accent-fg',
+        tone === 'accent'
+          ? 'border-accent/40 bg-surface text-fg'
+          : 'border-accent bg-accent text-accent-fg',
       )}
     >
       {children}
@@ -335,13 +406,24 @@ function ShareMenu({ id, session }: { id: string; session: DiagramSession }) {
         </Button>
       )}
       items={[
-        { label: 'Copy editor link', icon: <Link2 size={14} />, onSelect: () => void copy(`${location.origin}/d/${id}`, 'Link') },
-        { label: 'Copy full-screen view link', icon: <Eye size={14} />, onSelect: () => void copy(`${location.origin}/d/${id}/view`, 'View link') },
+        {
+          label: 'Copy editor link',
+          icon: <Link2 size={14} />,
+          onSelect: () => void copy(`${location.origin}/d/${id}`, 'Link'),
+        },
+        {
+          label: 'Copy full-screen view link',
+          icon: <Eye size={14} />,
+          onSelect: () => void copy(`${location.origin}/d/${id}/view`, 'View link'),
+        },
         'separator',
         {
           label: 'Open a copy in the Playground',
           onSelect: () =>
-            window.open(`/play#${serializeState({ code: session.code.toString(), mermaid: session.config.toString() })}`, '_blank'),
+            window.open(
+              `/play#${serializeState({ code: session.code.toString(), mermaid: session.config.toString() })}`,
+              '_blank',
+            ),
         },
       ]}
     />

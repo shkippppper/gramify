@@ -38,7 +38,11 @@ export function PlaygroundPage() {
       t = setTimeout(() => {
         const state = { code: session.code.toString(), config: session.config.toString() };
         save(STORE_KEY, state);
-        history.replaceState(null, '', `#${serializeState({ code: state.code, mermaid: state.config })}`);
+        history.replaceState(
+          null,
+          '',
+          `#${serializeState({ code: state.code, mermaid: state.config })}`,
+        );
       }, 250);
     };
     session.doc.on('update', sync);

@@ -25,10 +25,15 @@ const devLogin = (): BetterAuthPlugin => ({
         const existing = await ctx.context.internalAdapter.findUserByEmail(email.toLowerCase());
         const user =
           existing?.user ??
-          (await ctx.context.internalAdapter.createUser({ email: email.toLowerCase(), name, image: null }, { method: 'admin' }));
-        if (!user) throw new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not create user' });
+          (await ctx.context.internalAdapter.createUser(
+            { email: email.toLowerCase(), name, image: null },
+            { method: 'admin' },
+          ));
+        if (!user)
+          throw new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not create user' });
         const session = await ctx.context.internalAdapter.createSession(user.id);
-        if (!session) throw new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not create session' });
+        if (!session)
+          throw new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not create session' });
         await setSessionCookie(ctx, { session, user });
         return ctx.json({ user });
       },
@@ -65,7 +70,9 @@ export const authOptions = {
         async before(user) {
           if (googleEnabled && allowedDomains.length > 0 && !devLoginEnabled) {
             if (!allowedDomains.includes(emailDomain(user.email))) {
-              throw new APIError('FORBIDDEN', { message: 'This account is not part of an allowed workspace.' });
+              throw new APIError('FORBIDDEN', {
+                message: 'This account is not part of an allowed workspace.',
+              });
             }
           }
           return { data: user };
@@ -77,12 +84,16 @@ export const authOptions = {
   telemetry: { enabled: false },
 } satisfies BetterAuthOptions;
 
-export const auth = betterAuth(authOptions);
+let instance: ReturnType<typeof betterAuth<typeof authOptions>> | undefined;
+/** Created lazily so it initialises after migrations have run. */
+export function getAuth() {
+  return (instance ??= betterAuth(authOptions));
+}
 
 export type SessionUser = { id: string; name: string; email: string; image: string | null };
 
 export async function getSessionUser(headers: Headers): Promise<SessionUser | null> {
-  const res = await auth.api.getSession({ headers });
+  const res = await getAuth().api.getSession({ headers });
   if (!res) return null;
   const { id, name, email, image } = res.user;
   return { id, name, email, image: image ?? null };

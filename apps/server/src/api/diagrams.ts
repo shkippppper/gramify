@@ -1,5 +1,11 @@
 import { zValidator } from './validate.ts';
-import { DEFAULT_CODE, DEFAULT_CONFIG, YDOC, type DiagramSummary, type PublicUser } from '@tidepool/shared';
+import {
+  DEFAULT_CODE,
+  DEFAULT_CONFIG,
+  YDOC,
+  type DiagramSummary,
+  type PublicUser,
+} from '@tidepool/shared';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { sql, type Selectable } from 'kysely';
@@ -19,8 +25,12 @@ type Row = Selectable<Omit<DiagramTable, 'ydoc'>> & {
   starred: boolean;
 };
 
-const user = (id: string | null, name: string | null, email: string | null, image: string | null): PublicUser | null =>
-  id && name && email ? { id, name, email, image } : null;
+const user = (
+  id: string | null,
+  name: string | null,
+  email: string | null,
+  image: string | null,
+): PublicUser | null => (id && name && email ? { id, name, email, image } : null);
 
 export function toSummary(r: Row): DiagramSummary {
   return {
@@ -60,7 +70,9 @@ function baseQuery(userId: string) {
       'e.name as editor_name',
       'e.email as editor_email',
       'e.image as editor_image',
-      sql<boolean>`exists (select 1 from diagram_star s where s.diagram_id = d.id and s.user_id = ${userId})`.as('starred'),
+      sql<boolean>`exists (select 1 from diagram_star s where s.diagram_id = d.id and s.user_id = ${userId})`.as(
+        'starred',
+      ),
     ]);
 }
 
@@ -99,18 +111,28 @@ export const diagrams = new Hono<AppEnv>()
     else query = query.where('d.deleted_at', 'is', null);
     if (view === 'starred') {
       query = query.where((eb) =>
-        eb.exists(eb.selectFrom('diagram_star as s').select('s.diagram_id').whereRef('s.diagram_id', '=', 'd.id').where('s.user_id', '=', me)),
+        eb.exists(
+          eb
+            .selectFrom('diagram_star as s')
+            .select('s.diagram_id')
+            .whereRef('s.diagram_id', '=', 'd.id')
+            .where('s.user_id', '=', me),
+        ),
       );
     }
     if (view === 'recent') {
       query = query
-        .innerJoin('diagram_visit as v', (j) => j.onRef('v.diagram_id', '=', 'd.id').on('v.user_id', '=', me))
+        .innerJoin('diagram_visit as v', (j) =>
+          j.onRef('v.diagram_id', '=', 'd.id').on('v.user_id', '=', me),
+        )
         .orderBy('v.visited_at', 'desc');
     }
     if (folderId && view === 'all') query = query.where('d.folder_id', '=', folderId);
     if (q?.trim()) {
       const like = `%${q.trim().replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
-      query = query.where((eb) => eb.or([eb('d.title', 'ilike', like), eb('d.code_text', 'ilike', like)]));
+      query = query.where((eb) =>
+        eb.or([eb('d.title', 'ilike', like), eb('d.code_text', 'ilike', like)]),
+      );
     }
     if (view !== 'recent') {
       if (sort === 'title') query = query.orderBy('d.title', 'asc');
@@ -149,7 +171,9 @@ export const diagrams = new Hono<AppEnv>()
       await db
         .insertInto('diagram_visit')
         .values({ user_id: me, diagram_id: id, visited_at: new Date() })
-        .onConflict((oc) => oc.columns(['user_id', 'diagram_id']).doUpdateSet({ visited_at: new Date() }))
+        .onConflict((oc) =>
+          oc.columns(['user_id', 'diagram_id']).doUpdateSet({ visited_at: new Date() }),
+        )
         .execute();
     }
     return c.json(summary);
@@ -158,10 +182,19 @@ export const diagrams = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     const body = c.req.valid('json');
     const me = c.get('user');
-    const exists = await db.selectFrom('diagram').select('id').where('id', '=', id).where('deleted_at', 'is', null).executeTakeFirst();
+    const exists = await db
+      .selectFrom('diagram')
+      .select('id')
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
     if (!exists) throw new HTTPException(404, { message: 'Diagram not found' });
     if (body.folderId !== undefined) {
-      await db.updateTable('diagram').set({ folder_id: body.folderId }).where('id', '=', id).execute();
+      await db
+        .updateTable('diagram')
+        .set({ folder_id: body.folderId })
+        .where('id', '=', id)
+        .execute();
     }
     if (body.title !== undefined) {
       await db.updateTable('diagram').set({ title: body.title }).where('id', '=', id).execute();
@@ -195,10 +228,19 @@ export const diagrams = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     const permanent = c.req.query('permanent') === '1';
     if (permanent) {
-      const res = await db.deleteFrom('diagram').where('id', '=', id).where('deleted_at', 'is not', null).executeTakeFirst();
-      if (!res.numDeletedRows) throw new HTTPException(409, { message: 'Move the diagram to the trash first' });
+      const res = await db
+        .deleteFrom('diagram')
+        .where('id', '=', id)
+        .where('deleted_at', 'is not', null)
+        .executeTakeFirst();
+      if (!res.numDeletedRows)
+        throw new HTTPException(409, { message: 'Move the diagram to the trash first' });
     } else {
-      await db.updateTable('diagram').set({ deleted_at: new Date() }).where('id', '=', id).execute();
+      await db
+        .updateTable('diagram')
+        .set({ deleted_at: new Date() })
+        .where('id', '=', id)
+        .execute();
       closeDiagram(id);
     }
     return c.body(null, 204);
@@ -219,6 +261,10 @@ export const diagrams = new Hono<AppEnv>()
   })
   .delete('/:id/star', async (c) => {
     const id = assertUuid(c.req.param('id'));
-    await db.deleteFrom('diagram_star').where('user_id', '=', c.get('user').id).where('diagram_id', '=', id).execute();
+    await db
+      .deleteFrom('diagram_star')
+      .where('user_id', '=', c.get('user').id)
+      .where('diagram_id', '=', id)
+      .execute();
     return c.body(null, 204);
   });
