@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { BRAND } from '@gramify/shared';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { BrandIcon } from '../components/BrandIcon';
 import { ThemeToggle } from '../components/TopBar';
 import { Button, Input, Spinner } from '../components/ui';
 import { api } from '../lib/api';
@@ -56,9 +57,9 @@ export function LoginPage() {
       </div>
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <img src="/favicon.svg" alt="" className="size-12" />
+          <BrandIcon className="size-16" />
           <div>
-            <h1 className="text-xl font-semibold">{BRAND.name}</h1>
+            <h1 className="tp-wordmark text-3xl">{BRAND.name}</h1>
             <p className="text-sm text-muted">{BRAND.tagline}</p>
           </div>
         </div>
@@ -76,7 +77,11 @@ export function LoginPage() {
                 errorCallbackURL: `/login?next=${encodeURIComponent(next)}`,
               });
               if (res.error) {
-                setError(res.error.message ?? 'Sign-in failed');
+                setError(
+                  res.error.status === 429
+                    ? 'Too many sign-in attempts. Wait a few seconds and try again.'
+                    : (res.error.message ?? 'Sign-in failed'),
+                );
                 setBusy(false);
               }
             }}

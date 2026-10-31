@@ -3,13 +3,14 @@ import { Monitor, Moon, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTheme, type ThemePref } from '../lib/theme';
+import { BrandIcon } from './BrandIcon';
 import { IconButton } from './ui';
 
 export function Logo({ withName = true }: { withName?: boolean }) {
   return (
-    <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold text-fg">
-      <img src="/favicon.svg" alt="" className="size-6" />
-      {withName && <span className="hidden sm:inline">{BRAND.name}</span>}
+    <Link to="/" className="flex shrink-0 items-center gap-2" aria-label={`${BRAND.name} home`}>
+      <BrandIcon className="size-7" />
+      {withName && <span className="tp-wordmark hidden text-lg sm:inline">{BRAND.name}</span>}
     </Link>
   );
 }

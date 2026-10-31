@@ -22,10 +22,11 @@
   --tp-border: #e2e5ea;
   --tp-fg: #14171c;
   --tp-muted: #626b78;
-  --tp-accent: #0e7490;
+  --tp-accent: #0079b8;
   --tp-accent-fg: #ffffff;
   --tp-danger: #d92d20;
   --tp-grid: #d5d9e0;
+  --tp-wordmark: #6d6e71;
   color-scheme: light;
 }
 
@@ -36,10 +37,11 @@
   --tp-border: #2b303a;
   --tp-fg: #e8eaee;
   --tp-muted: #9aa3b0;
-  --tp-accent: #22b8d6;
-  --tp-accent-fg: #06262e;
+  --tp-accent: #00aeef;
+  --tp-accent-fg: #062330;
   --tp-danger: #ff6b5e;
   --tp-grid: #2a2f38;
+  --tp-wordmark: #b9bbbf;
   color-scheme: dark;
 }
 
@@ -95,4 +97,12 @@ body {
   pointer-events: none;
   z-index: 10;
   opacity: 0.95;
+}
+
+/* Brand wordmark: same rounded typeface and gray as the logo files in /public/brand. */
+.tp-wordmark {
+  font-family: 'Nunito', var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--tp-wordmark);
 }

@@ -82,6 +82,15 @@ export const authOptions = {
       },
     },
   },
+  advanced: {
+    ipAddress: {
+      // Behind Railway's proxy X-Forwarded-For carries several hops, which Better Auth
+      // won't guess between; X-Real-IP holds just the client. Without a per-client IP,
+      // rate limits fall back to one bucket shared by everyone (429s for all after a
+      // few sign-in clicks).
+      ipAddressHeaders: ['x-real-ip', 'cf-connecting-ip', 'x-forwarded-for'],
+    },
+  },
   plugins: devLoginEnabled ? [devLogin()] : [],
   telemetry: { enabled: false },
 } satisfies BetterAuthOptions;

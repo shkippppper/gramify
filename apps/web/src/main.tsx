@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router';
 import { Toaster } from 'sonner';
 import { App } from './App';
 import { useTheme } from './lib/theme';
+import '@fontsource/nunito/800.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import './styles.css';
 
