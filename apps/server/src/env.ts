@@ -33,6 +33,26 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export const isProd = env.NODE_ENV === 'production';
+
+// BETTER_AUTH_URL must be the exact public origin: Google compares the derived redirect URI
+// character for character. Normalise the common mistakes instead of failing sign-in.
+{
+  const u = new URL(env.BETTER_AUTH_URL);
+  const local = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
+  if (isProd && u.protocol === 'http:' && !local) {
+    console.warn(
+      `BETTER_AUTH_URL uses http://; using https://${u.host} (public hosts are served over HTTPS).`,
+    );
+    u.protocol = 'https:';
+  }
+  if (u.pathname !== '/' || u.search) {
+    console.warn(`BETTER_AUTH_URL should be just the origin; ignoring "${u.pathname}${u.search}".`);
+  }
+  env.BETTER_AUTH_URL = u.origin;
+}
+console.log(
+  `Public URL: ${env.BETTER_AUTH_URL} (Google redirect URI: ${env.BETTER_AUTH_URL}/api/auth/callback/google)`,
+);
 export const allowedDomains = env.ALLOWED_GOOGLE_DOMAIN.split(',')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
