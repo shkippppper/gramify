@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import type * as Y from 'yjs';
 import { currentContent, editDoc, insertVersion, takeContributors } from '../collab.ts';
+import { requireRole } from '../access.ts';
 import { db } from '../db/index.ts';
 import { assertUuid, requireUser, type AppEnv } from './context.ts';
 import { zValidator } from './validate.ts';
@@ -73,28 +74,18 @@ async function listVersions(diagramId: string): Promise<DiagramVersion[]> {
   }));
 }
 
-async function assertDiagram(id: string) {
-  const row = await db
-    .selectFrom('diagram')
-    .select('id')
-    .where('id', '=', id)
-    .where('deleted_at', 'is', null)
-    .executeTakeFirst();
-  if (!row) throw new HTTPException(404, { message: 'Diagram not found' });
-}
-
 const nameBody = z.object({ name: z.string().trim().min(1).max(120) });
 
 export const versions = new Hono<AppEnv>()
   .use(requireUser)
   .get('/:id/versions', async (c) => {
     const id = assertUuid(c.req.param('id'));
-    await assertDiagram(id);
+    await requireRole(id, c.get('user'), 'viewer');
     return c.json(await listVersions(id));
   })
   .post('/:id/versions', zValidator('json', nameBody), async (c) => {
     const id = assertUuid(c.req.param('id'));
-    await assertDiagram(id);
+    await requireRole(id, c.get('user'), 'editor');
     const content = await currentContent(id);
     if (!content) throw new HTTPException(404, { message: 'Diagram not found' });
     const me = c.get('user');
@@ -109,6 +100,7 @@ export const versions = new Hono<AppEnv>()
   .patch('/:id/versions/:vid', zValidator('json', nameBody), async (c) => {
     const id = assertUuid(c.req.param('id'));
     const vid = assertUuid(c.req.param('vid'));
+    await requireRole(id, c.get('user'), 'editor');
     // Naming an automatic version promotes it so it's never pruned.
     const res = await db
       .updateTable('diagram_version')
@@ -122,6 +114,7 @@ export const versions = new Hono<AppEnv>()
   .delete('/:id/versions/:vid', async (c) => {
     const id = assertUuid(c.req.param('id'));
     const vid = assertUuid(c.req.param('vid'));
+    await requireRole(id, c.get('user'), 'owner');
     await db
       .deleteFrom('diagram_version')
       .where('id', '=', vid)
@@ -132,7 +125,7 @@ export const versions = new Hono<AppEnv>()
   .post('/:id/versions/:vid/restore', async (c) => {
     const id = assertUuid(c.req.param('id'));
     const vid = assertUuid(c.req.param('vid'));
-    await assertDiagram(id);
+    await requireRole(id, c.get('user'), 'editor');
     const target = await db
       .selectFrom('diagram_version')
       .selectAll()

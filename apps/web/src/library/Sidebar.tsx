@@ -10,6 +10,8 @@ import {
   Pencil,
   Star,
   Trash2,
+  User as UserIcon,
+  Users,
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { api, type LibraryView } from '../lib/api';
@@ -119,8 +121,8 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
       <div key={f.id}>
         <NavItem
           depth={depth}
-          active={view === 'all' && folderId === f.id}
-          onClick={() => onSelect('all', f.id)}
+          active={view === 'mine' && folderId === f.id}
+          onClick={() => onSelect('mine', f.id)}
           onDropDiagram={(id) => move.mutate({ id, folderId: f.id })}
           icon={
             <span className="flex items-center">
@@ -208,15 +210,34 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
         Starred
       </NavItem>
       <NavItem
-        active={view === 'all' && !folderId}
+        active={view === 'all'}
         onClick={() => onSelect('all', null)}
-        onDropDiagram={(id) => move.mutate({ id, folderId: null })}
         icon={<LayoutGrid size={15} className="text-muted" />}
       >
-        All diagrams
+        All boards
+      </NavItem>
+      <NavItem
+        active={view === 'shared'}
+        onClick={() => onSelect('shared', null)}
+        icon={<Users size={15} className="text-muted" />}
+      >
+        Shared with me
+      </NavItem>
+      <NavItem
+        active={view === 'mine' && !folderId}
+        onClick={() => onSelect('mine', null)}
+        onDropDiagram={(id) => move.mutate({ id, folderId: null })}
+        icon={<UserIcon size={15} className="text-muted" />}
+      >
+        My boards
       </NavItem>
       <div className="mt-4 mb-1 flex items-center justify-between pr-1 pl-2">
-        <span className="text-xs font-semibold tracking-wide text-muted uppercase">Folders</span>
+        <span
+          className="text-xs font-semibold tracking-wide text-muted uppercase"
+          title="Only you see your folders"
+        >
+          My folders
+        </span>
         <IconButton
           label="New folder"
           className="size-6"
@@ -284,7 +305,7 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
               onClick={() => {
                 if (confirmDelete) {
                   remove.mutate(confirmDelete.id);
-                  if (folderId === confirmDelete.id) onSelect('all', confirmDelete.parentId);
+                  if (folderId === confirmDelete.id) onSelect('mine', confirmDelete.parentId);
                 }
                 setConfirmDelete(null);
               }}

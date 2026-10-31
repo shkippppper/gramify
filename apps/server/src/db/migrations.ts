@@ -92,4 +92,31 @@ export const migrations: Record<string, Migration> = {
       `.execute(db);
     },
   },
+  '0003_members': {
+    async up(db: Kysely<any>) {
+      // Board membership, keyed by email so people can be added before their first sign-in.
+      await db.schema
+        .createTable('diagram_member')
+        .addColumn('diagram_id', 'uuid', (c) =>
+          c.notNull().references('diagram.id').onDelete('cascade'),
+        )
+        .addColumn('email', 'text', (c) => c.notNull())
+        .addColumn('role', 'text', (c) => c.notNull().check(sql`role in ('editor','viewer')`))
+        .addColumn('added_by', 'text', (c) => c.references('user.id').onDelete('set null'))
+        .addColumn('created_at', 'timestamptz', (c) => c.notNull().defaultTo(sql`now()`))
+        .addPrimaryKeyConstraint('diagram_member_pk', ['diagram_id', 'email'])
+        .execute();
+      await db.schema
+        .createIndex('diagram_member_email_idx')
+        .on('diagram_member')
+        .column('email')
+        .execute();
+      await db.schema.createIndex('diagram_owner_idx').on('diagram').column('owner_id').execute();
+      await db.schema
+        .createIndex('folder_created_by_idx')
+        .on('folder')
+        .column('created_by')
+        .execute();
+    },
+  },
 };

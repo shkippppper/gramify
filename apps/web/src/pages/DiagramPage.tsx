@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramVersion, PresenceState } from '@tidepool/shared';
+import type { DiagramRole, DiagramVersion, PresenceState } from '@tidepool/shared';
 import { serializeState } from '@tidepool/shared';
 import clsx from 'clsx';
-import { ChevronRight, Eye, History, Link2, Share2, Square } from 'lucide-react';
+import { ChevronRight, Eye, History, Link2, Share2, Square, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { RemoteCursorStyles } from '../collab/RemoteCursorStyles';
 import { useYMapValue, useYText, type DiagramSession } from '../collab/session';
 import { useCollab, type CollabStatus } from '../collab/useCollab';
 import { ThemeToggle, TopBar } from '../components/TopBar';
+import { ShareDialog } from '../components/ShareDialog';
 import { UserMenu } from '../components/UserMenu';
 import { Button, Menu, Spinner } from '../components/ui';
 import { EditorWorkspace } from '../editor/EditorWorkspace';
@@ -108,7 +109,12 @@ export function DiagramPage() {
     retry: false,
   });
   const folders = useQuery({ queryKey: ['folders'], queryFn: api.listFolders });
-  const collab = useCollab(summary.data && !summary.data.deletedAt ? id : undefined, me.data);
+  const collab = useCollab(
+    summary.data && !summary.data.deletedAt ? id : undefined,
+    me.data,
+    summary.data?.role === 'viewer',
+  );
+  const [shareOpen, setShareOpen] = useState(false);
   const session = collab.session;
 
   const [historyOpen, setHistoryOpen] = useLocalState('tp-history-open', false);
@@ -234,6 +240,7 @@ export function DiagramPage() {
   return (
     <>
       <RemoteCursorStyles session={session} />
+      <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} diagram={d} />
       <DiagramWorkspace
         session={session}
         title={d.title}
@@ -258,12 +265,20 @@ export function DiagramPage() {
                   synced={collab.synced}
                   unsynced={collab.unsynced}
                 />
+                {d.role === 'viewer' && (
+                  <span
+                    className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted"
+                    data-testid="view-only"
+                  >
+                    View only
+                  </span>
+                )}
               </>
             }
             right={
               <>
                 <PresenceAvatars session={session} following={following} onFollow={setFollowing} />
-                <ShareMenu id={d.id} session={session} />
+                <ShareMenu id={d.id} session={session} onManage={() => setShareOpen(true)} />
                 <Button
                   size="sm"
                   variant={historyOpen ? 'secondary' : 'ghost'}
@@ -281,6 +296,7 @@ export function DiagramPage() {
         side={
           historyOpen ? (
             <HistoryPanelLive
+              role={d.role}
               diagramId={d.id}
               session={session}
               previewing={previewing}
@@ -382,6 +398,7 @@ function DiagramWorkspace({
 }
 
 function HistoryPanelLive(props: {
+  role: DiagramRole;
   diagramId: string;
   session: DiagramSession;
   previewing: DiagramVersion | null;
@@ -393,7 +410,15 @@ function HistoryPanelLive(props: {
   return <HistoryPanel {...props} currentCode={code} currentConfig={config} />;
 }
 
-function ShareMenu({ id, session }: { id: string; session: DiagramSession }) {
+function ShareMenu({
+  id,
+  session,
+  onManage,
+}: {
+  id: string;
+  session: DiagramSession;
+  onManage: () => void;
+}) {
   const copy = async (text: string, what: string) => {
     await navigator.clipboard.writeText(text);
     toast.success(`${what} copied`);
@@ -406,6 +431,8 @@ function ShareMenu({ id, session }: { id: string; session: DiagramSession }) {
         </Button>
       )}
       items={[
+        { label: 'People with access…', icon: <Users size={14} />, onSelect: onManage },
+        'separator',
         {
           label: 'Copy editor link',
           icon: <Link2 size={14} />,

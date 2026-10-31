@@ -15,6 +15,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { ThemeToggle, TopBar } from '../components/TopBar';
+import { ShareDialog } from '../components/ShareDialog';
 import { UserMenu } from '../components/UserMenu';
 import { Button, Dialog, Input, Menu, Spinner } from '../components/ui';
 import { SAMPLE_FAMILIES } from '../editor/samples';
@@ -24,10 +25,13 @@ import { Thumbnail } from '../library/Thumbnail';
 import { useDiagrams, useFolders, useLibraryMutation } from '../library/useLibrary';
 import { api, type LibraryView, type SortKey } from '../lib/api';
 import { parseFile, parseImport } from '../lib/import';
+import { useMe } from '../lib/auth';
 import { useLocalState } from '../lib/useLocalState';
 
 const VIEW_TITLES: Record<LibraryView, string> = {
-  all: 'All diagrams',
+  all: 'All boards',
+  mine: 'My boards',
+  shared: 'Shared with me',
   recent: 'Recent',
   starred: 'Starred',
   trash: 'Trash',
@@ -78,11 +82,13 @@ export function LibraryPage() {
   const [importText, setImportText] = useState('');
   const [samplesOpen, setSamplesOpen] = useState(false);
   const [deleting, setDeleting] = useState<DiagramSummary | null>(null);
+  const [sharing, setSharing] = useState<DiagramSummary | null>(null);
+  const me = useMe();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const create = useMutation({
     mutationFn: (b: { title?: string; code?: string; config?: string }) =>
-      api.createDiagram({ ...b, folderId: view === 'all' ? folderId : null }),
+      api.createDiagram({ ...b, folderId: view === 'mine' ? folderId : null }),
     onSuccess: (d) => navigate(`/d/${d.id}`),
     onError: (e) => toast.error((e as Error).message),
   });
@@ -99,6 +105,10 @@ export function LibraryPage() {
   const star = useLibraryMutation((d: DiagramSummary) => api.star(d.id, !d.starred));
   const trash = useLibraryMutation((id: string) => api.trashDiagram(id), 'Moved to trash');
   const restore = useLibraryMutation((id: string) => api.restoreDiagram(id), 'Restored');
+  const leave = useLibraryMutation(
+    (id: string) => api.removeMember(id, me.data!.email),
+    'You left the board',
+  );
   const deleteForever = useLibraryMutation((id: string) => api.deleteForever(id), 'Deleted');
 
   const actions: CardActions = {
@@ -115,10 +125,12 @@ export function LibraryPage() {
     trash: (d) => trash.mutate(d.id),
     restore: (d) => restore.mutate(d.id),
     deleteForever: (d) => setDeleting(d),
+    share: (d) => setSharing(d),
+    leave: (d) => leave.mutate(d.id),
   };
 
   const heading =
-    view === 'all' && folderId ? folderPath(folderList, folderId) || 'Folder' : VIEW_TITLES[view];
+    view === 'mine' && folderId ? folderPath(folderList, folderId) || 'Folder' : VIEW_TITLES[view];
   const diagrams = list.data?.diagrams ?? [];
   const presence = list.data?.presence ?? {};
 
@@ -279,9 +291,11 @@ export function LibraryPage() {
                         ? 'Star diagrams to find them here.'
                         : view === 'recent'
                           ? 'Diagrams you open show up here.'
-                          : 'No diagrams here yet.'}
+                          : view === 'shared'
+                            ? 'Nothing shared with you yet. When a board owner adds your email, the board shows up here.'
+                            : 'No diagrams here yet. Boards you create are private until you share them.'}
                 </p>
-                {view === 'all' && !q && (
+                {(view === 'all' || view === 'mine') && !q && (
                   <Button variant="primary" onClick={() => create.mutate({})}>
                     <FilePlus2 size={15} /> Create your first diagram
                   </Button>
@@ -317,6 +331,8 @@ export function LibraryPage() {
           </div>
         </main>
       </div>
+
+      {sharing && <ShareDialog open onClose={() => setSharing(null)} diagram={sharing} />}
 
       <Dialog
         open={!!renaming}

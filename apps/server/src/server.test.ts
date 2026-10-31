@@ -81,9 +81,13 @@ function connect(diagramId: string, cookie: string, name: string) {
     color: '#000',
   });
   const synced = new Promise<void>((resolve) => provider.on('synced', () => resolve()));
+  const denied = new Promise<string>((resolve) =>
+    provider.on('authenticationFailed', ({ reason }: { reason: string }) => resolve(reason)),
+  );
   return {
     doc,
     synced,
+    denied,
     destroy: () => {
       provider.destroy();
       websocketProvider.destroy();
@@ -160,7 +164,9 @@ describe('API', () => {
     );
     const d = (await ada.call('POST', '/diagrams', { title: 'In folder', folderId: child.id }))
       .body;
-    expect((await ada.call('GET', `/diagrams?folderId=${child.id}`)).body.diagrams).toHaveLength(1);
+    expect(
+      (await ada.call('GET', `/diagrams?view=mine&folderId=${child.id}`)).body.diagrams,
+    ).toHaveLength(1);
     // Deleting a folder moves its diagrams up one level instead of deleting them.
     expect((await ada.call('DELETE', `/folders/${child.id}`)).status).toBe(204);
     expect((await ada.call('GET', `/diagrams/${d.id}`)).body.folderId).toBe(parent.id);
@@ -190,6 +196,9 @@ describe('collaboration', () => {
     const { id } = (
       await ada.call('POST', '/diagrams', { title: 'Live', code: 'graph TD\n  A --> B\n' })
     ).body;
+    expect(
+      (await ada.call('POST', `/diagrams/${id}/members`, { email: 'grace@example.com' })).status,
+    ).toBe(201);
 
     const a = connect(id, ada.cookie, 'ada');
     const g = connect(id, grace.cookie, 'grace');
@@ -287,5 +296,128 @@ describe('collaboration', () => {
       .execute();
     expect(left.filter((v) => v.kind === 'auto')).toHaveLength(1);
     expect(left.filter((v) => v.kind === 'named')).toHaveLength(1);
+  });
+});
+
+describe('access control', () => {
+  it('keeps boards private until the owner shares them', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const eve = await signIn('eve@example.com', 'Eve');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'Secret plan' })).body;
+
+    // Not listed, not readable, not editable, not connectable.
+    expect((await eve.call('GET', '/diagrams?q=Secret')).body.diagrams).toHaveLength(0);
+    expect((await eve.call('GET', `/diagrams/${id}`)).status).toBe(404);
+    expect((await eve.call('PATCH', `/diagrams/${id}`, { title: 'Hacked' })).status).toBe(404);
+    expect((await eve.call('GET', `/diagrams/${id}/versions`)).status).toBe(404);
+    expect(
+      (await eve.call('POST', `/diagrams/${id}/members`, { email: 'eve@example.com' })).status,
+    ).toBe(404);
+    expect((await eve.call('POST', `/diagrams/${id}/duplicate`)).status).toBe(404);
+    const e = connect(id, eve.cookie, 'eve');
+    expect(await e.denied).toBeTruthy();
+    e.destroy();
+  });
+
+  it('lets only the owner manage members, and enforces viewer read-only', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const grace = await signIn('grace@example.com', 'Grace Hopper');
+    const linus = await signIn('linus@example.com', 'Linus');
+    const { id } = (
+      await ada.call('POST', '/diagrams', { title: 'Roadmap', code: 'graph TD\n  A\n' })
+    ).body;
+
+    // Members can be added before they ever sign in.
+    const added = await ada.call('POST', `/diagrams/${id}/members`, {
+      email: 'Grace@Example.com',
+      role: 'viewer',
+    });
+    expect(added.status).toBe(201);
+    await ada.call('POST', `/diagrams/${id}/members`, { email: 'newcomer@example.com' });
+    const members = (await ada.call('GET', `/diagrams/${id}/members`)).body as Array<{
+      email: string;
+      role: string;
+      user: unknown;
+    }>;
+    expect(members.map((m) => [m.email, m.role, !!m.user])).toEqual([
+      ['grace@example.com', 'viewer', true],
+      ['newcomer@example.com', 'editor', false],
+    ]);
+
+    // Grace sees it under "shared", as a viewer.
+    const shared = (await grace.call('GET', '/diagrams?view=shared')).body.diagrams;
+    expect(shared.find((d: { id: string }) => d.id === id)?.role).toBe('viewer');
+    expect(
+      (await grace.call('GET', '/diagrams?view=mine')).body.diagrams.map(
+        (d: { id: string }) => d.id,
+      ),
+    ).not.toContain(id);
+
+    // Viewers can't rename, save versions, add people, or trash.
+    expect((await grace.call('PATCH', `/diagrams/${id}`, { title: 'x' })).status).toBe(403);
+    expect((await grace.call('POST', `/diagrams/${id}/versions`, { name: 'x' })).status).toBe(403);
+    expect(
+      (await grace.call('POST', `/diagrams/${id}/members`, { email: 'linus@example.com' })).status,
+    ).toBe(403);
+    expect((await grace.call('DELETE', `/diagrams/${id}`)).status).toBe(403);
+    // ...but can duplicate into their own private copy.
+    const copy = (await grace.call('POST', `/diagrams/${id}/duplicate`)).body;
+    expect(copy.role).toBe('owner');
+    expect((await ada.call('GET', `/diagrams/${copy.id}`)).status).toBe(404);
+
+    // Viewer connections are read-only: their edits never reach others.
+    const a = connect(id, ada.cookie, 'ada');
+    const g = connect(id, grace.cookie, 'grace');
+    await Promise.all([a.synced, g.synced]);
+    g.doc.getText(YDOC.code).insert(0, '%% viewer edit\n');
+    a.doc.getText(YDOC.code).insert(0, '%% owner edit\n');
+    await waitFor(() => g.doc.getText(YDOC.code).toString().includes('owner edit'));
+    await new Promise((r) => setTimeout(r, 500));
+    expect(a.doc.getText(YDOC.code).toString()).not.toContain('viewer edit');
+
+    // Editors still can't manage members; only the owner can.
+    await ada.call('POST', `/diagrams/${id}/members`, {
+      email: 'grace@example.com',
+      role: 'editor',
+    });
+    expect((await grace.call('PATCH', `/diagrams/${id}`, { title: 'Roadmap 2' })).status).toBe(200);
+    expect(
+      (await grace.call('POST', `/diagrams/${id}/members`, { email: 'linus@example.com' })).status,
+    ).toBe(403);
+    expect(
+      (await grace.call('DELETE', `/diagrams/${id}/members/newcomer%40example.com`)).status,
+    ).toBe(403);
+    expect((await linus.call('GET', `/diagrams/${id}`)).status).toBe(404);
+
+    // Removing someone revokes access immediately.
+    expect((await ada.call('DELETE', `/diagrams/${id}/members/grace%40example.com`)).status).toBe(
+      204,
+    );
+    expect((await grace.call('GET', `/diagrams/${id}`)).status).toBe(404);
+    const g2 = connect(id, grace.cookie, 'grace2');
+    expect(await g2.denied).toBeTruthy();
+
+    // A member can leave a board on their own.
+    await ada.call('POST', `/diagrams/${id}/members`, { email: 'linus@example.com' });
+    expect((await linus.call('DELETE', `/diagrams/${id}/members/linus%40example.com`)).status).toBe(
+      204,
+    );
+    expect((await linus.call('GET', `/diagrams/${id}`)).status).toBe(404);
+
+    a.destroy();
+    g.destroy();
+    g2.destroy();
+  });
+
+  it('keeps folders personal', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const eve = await signIn('eve@example.com', 'Eve');
+    const folder = (await ada.call('POST', '/folders', { name: 'Ada private folder' })).body;
+    expect((await eve.call('GET', '/folders')).body.map((f: { id: string }) => f.id)).not.toContain(
+      folder.id,
+    );
+    expect((await eve.call('PATCH', `/folders/${folder.id}`, { name: 'x' })).status).toBe(404);
+    expect((await eve.call('DELETE', `/folders/${folder.id}`)).status).toBe(404);
+    expect((await eve.call('POST', '/diagrams', { folderId: folder.id })).status).toBe(400);
   });
 });

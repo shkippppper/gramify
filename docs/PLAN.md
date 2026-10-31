@@ -11,10 +11,10 @@ A self-hosted website where the team writes Mermaid diagrams together in real ti
 - **Multiplayer**, which Mermaid Chart only offers on Premium ($20/user/mo): many people editing one diagram at once. You see live cursors and selections in the code, live pointers on the diagram canvas, and an avatar stack of who is in the document.
 - **Diagram library**: a dashboard with folders, search, recent items and starred items.
 - **Version history**: automatic timeline plus named versions, preview, compare and restore.
-- **Google Workspace SSO**, limited to the company domain.
+- **Google sign-in** for any Google account, with **private boards**: each board is visible only to its creator and the people the creator adds (editor or viewer).
 - **Deployed on Railway (Hobby)**: one app service plus Railway Postgres. Estimated cost is about $5–8 a month for 10–50 users.
 
-Not in v1, but the design leaves room for them: comments, AI assist, a visual drag-and-drop editor, presentation mode, public read-only links, per-diagram permissions.
+Not in v1, but the design leaves room for them: comments, AI assist, a visual drag-and-drop editor, presentation mode, public read-only links.
 
 ## 2. Research summary
 
@@ -70,7 +70,15 @@ View settings stay **local per user** and are not shared: pan, zoom, grid, hand-
 - `diagram_star(user_id, diagram_id)` and `diagram_visit(user_id, diagram_id, visited_at)`. Visits power "Recent".
 - `diagram_version(id, diagram_id, kind 'auto'|'named'|'restore', name null, code_text, config_text, created_by null, created_at)`.
 
-**Access model for v1:** everyone who signs in from the Workspace domain can see and edit every diagram, the same as a shared team drive. `owner_id` is stored so private diagrams or sharing rules can be added later without changing the schema.
+**Access model:** boards are private to their creator (`owner_id`). Only the owner can add people, via
+`diagram_member(diagram_id, email, role editor|viewer)`. Members are keyed by email so they can be added
+before their first sign-in. Every REST route and the `/collab` handshake check the role:
+
+- Viewers get read-only Yjs connections.
+- Boards you can't access return 404.
+- Removing someone or changing their role disconnects them so the change applies at once.
+
+Folders are personal (`folder.created_by`).
 
 ## 4. Feature spec
 
@@ -131,7 +139,7 @@ View settings stay **local per user** and are not shared: pan, zoom, grid, hand-
 
 ### 4.5 Auth
 
-- Google sign-in with the `hd` restriction to the domain in `ALLOWED_GOOGLE_DOMAIN` (comma-separated list allowed). Set the OAuth consent screen to **Internal**.
+- Google sign-in for any Google account (OAuth consent screen: External, published). An optional `ALLOWED_GOOGLE_DOMAIN` restricts sign-in to Workspace domain(s) using the verified `hd` claim.
 - Sessions are httpOnly cookies. The `/collab` WebSocket upgrade checks the same session.
 - **Dev login** (email and name only) when `DEV_LOGIN=true`. Used for local development and end-to-end tests, and refused when `NODE_ENV=production`.
 
@@ -192,4 +200,4 @@ Phases 0–6 are implemented and tested. Checks:
   - PNG and SVG export
 - **Docker image:** builds and boots against an empty Postgres (migrations on boot, SPA fallback, dev login disabled in production).
 
-Not built yet (candidates for v2): comments, AI assist, a visual editor, presentation mode, public read-only links, per-diagram permissions.
+Not built yet (candidates for v2): comments, AI assist, a visual editor, presentation mode, public read-only links.

@@ -25,6 +25,7 @@ function collabUrl() {
 export function useCollab(
   diagramId: string | undefined,
   me: PublicUser | null | undefined,
+  readOnly = false,
 ): CollabState {
   const [state, setState] = useState<CollabState>({
     session: null,
@@ -58,7 +59,7 @@ export function useCollab(
     };
     for (const [k, v] of Object.entries(presence)) awareness.setLocalStateField(k, v);
 
-    const session = sessionFromDoc(doc, awareness);
+    const session = sessionFromDoc(doc, awareness, readOnly);
     setState({ session, provider, status: 'connecting', synced: false, unsynced: 0, error: null });
 
     provider.on('status', ({ status }: { status: CollabStatus }) =>
@@ -69,6 +70,15 @@ export function useCollab(
     );
     provider.on('unsyncedChanges', ({ number }: { number: number }) =>
       setState((s) => ({ ...s, unsynced: number })),
+    );
+    // The server decides access; follow it if the owner changes our role mid-session.
+    provider.on('authenticated', ({ scope }: { scope: 'read-write' | 'readonly' }) =>
+      setState((s) => {
+        const ro = scope === 'readonly';
+        return s.session && s.session.readOnly !== ro
+          ? { ...s, session: { ...s.session, readOnly: ro } }
+          : s;
+      }),
     );
     provider.on('authenticationFailed', ({ reason }: { reason: string }) =>
       setState((s) => ({ ...s, error: reason || 'You do not have access to this diagram.' })),
@@ -84,7 +94,7 @@ export function useCollab(
       provider.destroy();
       doc.destroy();
     };
-  }, [diagramId, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [diagramId, me?.id, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return state;
 }

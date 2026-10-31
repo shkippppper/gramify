@@ -1,7 +1,17 @@
 import type { DiagramSummary, Folder, PublicUser } from '@tidepool/shared';
 import { colorForId } from '@tidepool/shared';
 import clsx from 'clsx';
-import { Copy, FolderInput, MoreHorizontal, Pencil, RotateCcw, Star, Trash2 } from 'lucide-react';
+import {
+  Copy,
+  FolderInput,
+  LogOut,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+  Star,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { Link } from 'react-router';
 import { Avatar, IconButton, Menu, type MenuItem } from '../components/ui';
 import { timeAgo } from '../lib/time';
@@ -16,6 +26,8 @@ export interface CardActions {
   trash: (d: DiagramSummary) => void;
   restore: (d: DiagramSummary) => void;
   deleteForever: (d: DiagramSummary) => void;
+  share: (d: DiagramSummary) => void;
+  leave: (d: DiagramSummary) => void;
 }
 
 function menuItems(d: DiagramSummary, a: CardActions): Array<MenuItem | 'separator'> {
@@ -30,7 +42,23 @@ function menuItems(d: DiagramSummary, a: CardActions): Array<MenuItem | 'separat
       },
     ];
   }
+  if (d.role !== 'owner') {
+    // Shared with you: only the owner can rename, move, share or delete.
+    return [
+      { label: 'People with access…', icon: <Users size={14} />, onSelect: () => a.share(d) },
+      { label: 'Duplicate to my boards', icon: <Copy size={14} />, onSelect: () => a.duplicate(d) },
+      { label: d.starred ? 'Unstar' : 'Star', icon: <Star size={14} />, onSelect: () => a.star(d) },
+      'separator',
+      {
+        label: 'Leave board',
+        icon: <LogOut size={14} />,
+        danger: true,
+        onSelect: () => a.leave(d),
+      },
+    ];
+  }
   return [
+    { label: 'Share…', icon: <Users size={14} />, onSelect: () => a.share(d) },
     { label: 'Rename', icon: <Pencil size={14} />, onSelect: () => a.rename(d) },
     { label: 'Move to folder…', icon: <FolderInput size={14} />, onSelect: () => a.move(d) },
     { label: 'Duplicate', icon: <Copy size={14} />, onSelect: () => a.duplicate(d) },
@@ -73,11 +101,30 @@ export function DiagramCard({
   layout: 'grid' | 'list';
 }) {
   const href = d.deletedAt ? undefined : `/d/${d.id}`;
+  const shared = d.role !== 'owner';
   const meta = (
-    <span className="truncate text-xs text-muted">
-      {d.updatedBy ? `${d.updatedBy.name.split(' ')[0]} · ` : ''}
-      {timeAgo(d.updatedAt)}
-      {folder ? ` · ${folder.name}` : ''}
+    <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted">
+      {shared ? (
+        <span
+          className="truncate"
+          title={`Shared with you by ${d.owner?.email ?? 'the owner'} · ${d.role === 'viewer' ? 'view only' : 'can edit'}`}
+        >
+          <Users size={11} className="inline" /> {d.owner?.name.split(' ')[0] ?? 'Shared'}
+          {d.role === 'viewer' ? ' · view' : ''} ·{' '}
+        </span>
+      ) : d.memberCount > 0 ? (
+        <span
+          className="flex items-center gap-0.5"
+          title={`Shared with ${d.memberCount} ${d.memberCount === 1 ? 'person' : 'people'}`}
+        >
+          <Users size={11} /> {d.memberCount} ·
+        </span>
+      ) : null}
+      <span className="truncate">
+        {d.updatedBy && !shared ? `${d.updatedBy.name.split(' ')[0]} · ` : ''}
+        {timeAgo(d.updatedAt)}
+        {folder ? ` · ${folder.name}` : ''}
+      </span>
     </span>
   );
   const menu = (
@@ -101,15 +148,16 @@ export function DiagramCard({
     </IconButton>
   );
 
-  const dragProps = d.deletedAt
-    ? {}
-    : {
-        draggable: true,
-        onDragStart: (e: React.DragEvent) => {
-          e.dataTransfer.setData(DND_TYPE, d.id);
-          e.dataTransfer.effectAllowed = 'move';
-        },
-      };
+  const dragProps =
+    d.deletedAt || d.role !== 'owner'
+      ? {}
+      : {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            e.dataTransfer.setData(DND_TYPE, d.id);
+            e.dataTransfer.effectAllowed = 'move';
+          },
+        };
 
   if (layout === 'list') {
     return (

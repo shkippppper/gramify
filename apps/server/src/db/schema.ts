@@ -60,6 +60,15 @@ export interface DiagramVersionTable {
   created_at: Generated<Date>;
 }
 
+export interface DiagramMemberTable {
+  diagram_id: string;
+  /** Lower-cased email; matches the user once they sign in. */
+  email: string;
+  role: 'editor' | 'viewer';
+  added_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   user: UserTable;
   folder: FolderTable;
@@ -67,4 +76,5 @@ export interface Database {
   diagram_star: DiagramStarTable;
   diagram_visit: DiagramVisitTable;
   diagram_version: DiagramVersionTable;
+  diagram_member: DiagramMemberTable;
 }

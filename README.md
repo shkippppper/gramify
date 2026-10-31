@@ -20,7 +20,11 @@ A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor 
   - Automatic snapshots while people edit, plus named versions
   - Shows who changed what
   - Preview any version with a line diff, and restore it for everyone (undoable)
-- **Google Workspace SSO**, limited to your domain.
+- **Private boards with sharing:**
+  - Anyone can sign in with Google, but every board is private to its creator.
+  - The owner adds people by email as editors or viewers and can remove them at any time.
+  - Viewers watch live, read-only.
+  - Folders are personal; boards others shared with you appear under "Shared with me".
 
 Built on the open-source `mermaid` library (MIT). Not affiliated with Mermaid Chart.
 

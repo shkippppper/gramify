@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramVersion } from '@tidepool/shared';
+import type { DiagramRole, DiagramVersion } from '@tidepool/shared';
 import { colorForId } from '@tidepool/shared';
 import clsx from 'clsx';
 import { diffLines } from 'diff';
@@ -21,6 +21,8 @@ import { api } from '../lib/api';
 import { formatDateTime, timeAgo } from '../lib/time';
 
 interface Props {
+  /** Viewers can browse history; editors can save and restore; owners can also delete. */
+  role: DiagramRole;
   diagramId: string;
   currentCode: string;
   currentConfig: string;
@@ -101,7 +103,9 @@ export function HistoryPanel({
   previewing,
   onPreview,
   onClose,
+  role,
 }: Props) {
+  const canEdit = role !== 'viewer';
   const qc = useQueryClient();
   const key = ['versions', diagramId];
   const versions = useQuery({
@@ -169,16 +173,18 @@ export function HistoryPanel({
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <History size={15} className="text-muted" />
         <h2 className="flex-1 text-sm font-semibold">Version history</h2>
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={() => {
-            setName('');
-            setSaveOpen(true);
-          }}
-        >
-          <Save size={13} /> Save version
-        </Button>
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => {
+              setName('');
+              setSaveOpen(true);
+            }}
+          >
+            <Save size={13} /> Save version
+          </Button>
+        )}
         <IconButton label="Close history" onClick={onClose} className="size-7">
           <X size={15} />
         </IconButton>
@@ -273,25 +279,33 @@ export function HistoryPanel({
                           </IconButton>
                         )}
                         items={[
-                          {
-                            label: 'Restore this version',
-                            icon: <RotateCcw size={14} />,
-                            onSelect: () => setConfirmRestore(v),
-                          },
-                          {
-                            label: v.name ? 'Rename' : 'Name this version',
-                            icon: <Pencil size={14} />,
-                            onSelect: () => {
-                              setName(v.name ?? '');
-                              setRenaming(v);
-                            },
-                          },
-                          {
-                            label: 'Delete',
-                            icon: <Trash2 size={14} />,
-                            danger: true,
-                            onSelect: () => remove.mutate(v),
-                          },
+                          ...(!canEdit
+                            ? []
+                            : [
+                                {
+                                  label: 'Restore this version',
+                                  icon: <RotateCcw size={14} />,
+                                  onSelect: () => setConfirmRestore(v),
+                                },
+                                {
+                                  label: v.name ? 'Rename' : 'Name this version',
+                                  icon: <Pencil size={14} />,
+                                  onSelect: () => {
+                                    setName(v.name ?? '');
+                                    setRenaming(v);
+                                  },
+                                },
+                              ]),
+                          ...(role !== 'owner'
+                            ? []
+                            : [
+                                {
+                                  label: 'Delete',
+                                  icon: <Trash2 size={14} />,
+                                  danger: true,
+                                  onSelect: () => remove.mutate(v),
+                                },
+                              ]),
                         ]}
                       />
                     </div>
@@ -301,14 +315,16 @@ export function HistoryPanel({
                         {v.config !== currentConfig && (
                           <p className="text-xs text-muted">The config also differs.</p>
                         )}
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          className="w-full"
-                          onClick={() => setConfirmRestore(v)}
-                        >
-                          <RotateCcw size={13} /> Restore this version
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            className="w-full"
+                            onClick={() => setConfirmRestore(v)}
+                          >
+                            <RotateCcw size={13} /> Restore this version
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>

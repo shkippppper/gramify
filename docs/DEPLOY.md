@@ -5,11 +5,19 @@ costs about **$5–8 per month** for a team of 10–50 people.
 
 ## 1. Create the Google OAuth client (about 5 minutes)
 
-1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project, or pick an existing one,
-   **inside your company's Google Workspace organization**.
+Any Google account can sign in (Gmail or a company address). Signing in only gives someone an
+empty library: **every board is private to the person who created it** until they share it from
+**Share → People with access**.
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project. A personal Google account is fine.
 2. Open **Google Auth Platform → Branding** and fill in the app name (e.g. "Tidepool") and the support email.
-3. Open **Audience** and set the user type to **Internal**. Only accounts in your Workspace can then sign in,
-   and Google does not need to verify the app.
+3. Open **Audience**:
+   - Set the user type to **External**.
+   - Click **Publish app** so the status is **In production**. The app only asks for basic profile and
+     email, so Google doesn't require a review for this. People may see an "unverified app" note until
+     you verify the brand, which is optional.
+   - Leaving it in **Testing** also works, but then only the people you list under **Test users** (up to 100)
+     can sign in. That's a handy extra gate if you want one.
 4. Open **Clients → Create client → Web application**:
    - **Authorized JavaScript origins:** `https://<your-domain>`
    - **Authorized redirect URIs:** `https://<your-domain>/api/auth/callback/google`
@@ -18,8 +26,24 @@ costs about **$5–8 per month** for a team of 10–50 people.
 
 5. Copy the **Client ID** and **Client secret**.
 
-Tidepool also checks the verified `hd` (hosted domain) claim in Google's ID token against
-`ALLOWED_GOOGLE_DOMAIN`, so sign-ins from other domains are rejected even if the consent screen were public.
+If your company _does_ use Google Workspace and you want only company accounts to sign in, set
+`ALLOWED_GOOGLE_DOMAIN=yourcompany.com`. Tidepool then also verifies the signed `hd` (hosted domain)
+claim from Google.
+
+### Who can see what
+
+|                                                       | Owner (creator) | Added with "Can edit" | Added with "Can view" | Everyone else                   |
+| ----------------------------------------------------- | --------------- | --------------------- | --------------------- | ------------------------------- |
+| Open the board, see live cursors, export              | ✓               | ✓                     | ✓                     | ✗ (looks like it doesn't exist) |
+| Edit the diagram and title, save and restore versions | ✓               | ✓                     | ✗                     | ✗                               |
+| Add or remove people, change access                   | ✓               | ✗                     | ✗                     | ✗                               |
+| Move to a folder, trash, delete, delete versions      | ✓               | ✗                     | ✗                     | ✗                               |
+| Duplicate into their own private copy                 | ✓               | ✓                     | ✓                     | ✗                               |
+| Leave the board                                       | –               | ✓                     | ✓                     | –                               |
+
+- People are added by email and can be added **before** they've ever signed in.
+- Removing someone or changing their access takes effect immediately, even if they have the board open.
+- Folders are personal: each person organises their own boards, and boards shared with you appear under **Shared with me**.
 
 ## 2. Create the Railway project
 
@@ -37,7 +61,7 @@ Tidepool also checks the verified `hd` (hosted domain) claim in Google's ID toke
    | `BETTER_AUTH_SECRET`    | a random string: `openssl rand -base64 32`                                                  |
    | `GOOGLE_CLIENT_ID`      | from step 1                                                                                 |
    | `GOOGLE_CLIENT_SECRET`  | from step 1                                                                                 |
-   | `ALLOWED_GOOGLE_DOMAIN` | your Workspace domain, e.g. `acme.com` (comma-separate several)                             |
+   | `ALLOWED_GOOGLE_DOMAIN` | _optional_: only if you want to restrict sign-in to a Google Workspace domain               |
 
    Railway sets `PORT` for you. **Do not** set `DEV_LOGIN` in production; it is ignored there anyway.
 
@@ -65,6 +89,6 @@ Now go back to Google Cloud and fill in the origin and redirect URI from step 1.
 docker compose --profile app up --build
 ```
 
-Then open http://localhost:3000. For Google sign-in, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
-`ALLOWED_GOOGLE_DOMAIN` in your shell, and add `http://localhost:3000/api/auth/callback/google` as a redirect URI
+Then open http://localhost:3000. For Google sign-in, set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+in your shell, and add `http://localhost:3000/api/auth/callback/google` as a redirect URI
 on the OAuth client.

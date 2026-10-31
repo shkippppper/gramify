@@ -1,4 +1,11 @@
-import type { DiagramSummary, DiagramVersion, Folder, PublicUser } from '@tidepool/shared';
+import type {
+  DiagramMember,
+  DiagramSummary,
+  DiagramVersion,
+  Folder,
+  MemberRole,
+  PublicUser,
+} from '@tidepool/shared';
 
 export class ApiError extends Error {
   status: number;
@@ -21,7 +28,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-export type LibraryView = 'all' | 'recent' | 'starred' | 'trash';
+export type LibraryView = 'all' | 'mine' | 'shared' | 'recent' | 'starred' | 'trash';
 export type SortKey = 'updated' | 'created' | 'title';
 
 export interface AppConfig {
@@ -64,6 +71,12 @@ export const api = {
   deleteForever: (id: string) => request<void>('DELETE', `/diagrams/${id}?permanent=1`),
   restoreDiagram: (id: string) => request<DiagramSummary>('POST', `/diagrams/${id}/restore`),
   star: (id: string, on: boolean) => request<void>(on ? 'PUT' : 'DELETE', `/diagrams/${id}/star`),
+
+  listMembers: (id: string) => request<DiagramMember[]>('GET', `/diagrams/${id}/members`),
+  addMember: (id: string, email: string, role: MemberRole) =>
+    request<DiagramMember[]>('POST', `/diagrams/${id}/members`, { email, role }),
+  removeMember: (id: string, email: string) =>
+    request<void>('DELETE', `/diagrams/${id}/members/${encodeURIComponent(email)}`),
 
   listFolders: () => request<Folder[]>('GET', '/folders'),
   createFolder: (name: string, parentId: string | null) =>

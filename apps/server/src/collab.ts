@@ -4,6 +4,7 @@ import { diagramIdFromDocName, docNameFor, YDOC, type PublicUser } from '@tidepo
 import { sql } from 'kysely';
 import * as Y from 'yjs';
 import type { SessionUser } from './auth.ts';
+import { roleFor } from './access.ts';
 import { db } from './db/index.ts';
 
 export interface CollabContext {
@@ -137,17 +138,15 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
     context,
     connectionConfig,
   }: onAuthenticatePayload<CollabContext>) {
-    if (!context.user && !context.system) throw new Error('Not authenticated');
     const id = diagramIdFromDocName(documentName);
     if (!id || !UUID_RE.test(id)) throw new Error('Unknown document');
-    const row = await db
-      .selectFrom('diagram')
-      .select(['id'])
-      .where('id', '=', id)
-      .where('deleted_at', 'is', null)
-      .executeTakeFirst();
-    if (!row) throw new Error('Diagram not found');
-    connectionConfig.readOnly = false;
+    if (context.system) return;
+    if (!context.user) throw new Error('Not authenticated');
+    const access = await roleFor(id, context.user);
+    // Unknown, trashed and not-shared-with-you all look the same.
+    if (!access || access.deleted) throw new Error('Diagram not found');
+    // Viewers receive live updates but their edits are rejected by the server.
+    connectionConfig.readOnly = access.role === 'viewer';
   },
 
   async onChange({ documentName, context }: onChangePayload<CollabContext>) {
@@ -255,6 +254,19 @@ export async function currentContent(diagramId: string) {
 /** Disconnect everyone from a diagram (e.g. after it was deleted). */
 export function closeDiagram(diagramId: string) {
   hocuspocus.closeConnections(docNameFor(diagramId));
+}
+
+/**
+ * Disconnect one person from a board so their access is re-checked
+ * (after being removed or getting a different role). Their client reconnects automatically.
+ */
+export function disconnectUser(diagramId: string, email: string) {
+  const doc = hocuspocus.documents.get(docNameFor(diagramId));
+  if (!doc) return;
+  const target = email.toLowerCase();
+  for (const conn of [...doc.connections.keys()]) {
+    if (conn.context?.user?.email?.toLowerCase() === target) conn.close();
+  }
 }
 
 /** Who is currently connected to which diagram (for library cards). */

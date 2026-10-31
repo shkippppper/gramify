@@ -23,6 +23,16 @@ const body = z.object({
   parentId: z.string().uuid().nullable().optional(),
 });
 
+async function ownFolderOr404(id: string, userId: string) {
+  const f = await db
+    .selectFrom('folder')
+    .select('id')
+    .where('id', '=', id)
+    .where('created_by', '=', userId)
+    .executeTakeFirst();
+  if (!f) throw new HTTPException(404, { message: 'Folder not found' });
+}
+
 /** Would setting `parentId` as the parent of `id` create a cycle? */
 async function createsCycle(id: string, parentId: string | null) {
   let cur = parentId;
@@ -41,12 +51,19 @@ async function createsCycle(id: string, parentId: string | null) {
 export const folders = new Hono<AppEnv>()
   .use(requireUser)
   .get('/', async (c) => {
-    const rows = await db.selectFrom('folder').selectAll().orderBy('name').execute();
+    // Folders are personal: each person organises their own boards.
+    const rows = await db
+      .selectFrom('folder')
+      .selectAll()
+      .where('created_by', '=', c.get('user').id)
+      .orderBy('name')
+      .execute();
     return c.json(rows.map(toFolder));
   })
   .post('/', zValidator('json', body), async (c) => {
     const { name, parentId } = c.req.valid('json');
     if (!name) throw new HTTPException(400, { message: 'Name is required' });
+    if (parentId) await ownFolderOr404(parentId, c.get('user').id);
     const row = await db
       .insertInto('folder')
       .values({ name, parent_id: parentId ?? null, created_by: c.get('user').id })
@@ -57,6 +74,9 @@ export const folders = new Hono<AppEnv>()
   .patch('/:id', zValidator('json', body), async (c) => {
     const id = assertUuid(c.req.param('id'));
     const { name, parentId } = c.req.valid('json');
+    const me = c.get('user').id;
+    await ownFolderOr404(id, me);
+    if (parentId) await ownFolderOr404(parentId, me);
     if (parentId !== undefined && (await createsCycle(id, parentId))) {
       throw new HTTPException(400, { message: 'A folder cannot be moved into itself' });
     }
@@ -74,6 +94,7 @@ export const folders = new Hono<AppEnv>()
   })
   .delete('/:id', async (c) => {
     const id = assertUuid(c.req.param('id'));
+    await ownFolderOr404(id, c.get('user').id);
     // Deleting a folder never deletes diagrams: its contents move up one level.
     await db.transaction().execute(async (tx) => {
       const f = await tx

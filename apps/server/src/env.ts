@@ -13,6 +13,7 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
+  /** Optional: restrict sign-in to these Google Workspace domains (comma-separated). */
   ALLOWED_GOOGLE_DOMAIN: z.string().default(''),
   DEV_LOGIN: bool,
   /** Directory with the built SPA (apps/web/dist) to serve in production. */
@@ -38,6 +39,5 @@ export const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_S
 
 if (env.DEV_LOGIN && isProd) console.warn('DEV_LOGIN is ignored in production.');
 if (googleEnabled && allowedDomains.length === 0) {
-  console.error('ALLOWED_GOOGLE_DOMAIN must be set when Google sign-in is configured.');
-  process.exit(1);
+  console.log('Google sign-in is open to any Google account; boards are private until shared.');
 }

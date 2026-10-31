@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { editorText, expectEditorToContain, typeAtEnd, userPage } from './helpers';
+import { editorText, expectEditorToContain, shareWith, typeAtEnd, userPage } from './helpers';
 
 test('two people edit the same diagram together', async ({ browser }) => {
   const ada = await userPage(browser, 'Ada Lovelace');
@@ -8,6 +8,7 @@ test('two people edit the same diagram together', async ({ browser }) => {
   await ada.getByRole('button', { name: 'New diagram' }).first().click();
   await ada.waitForURL(/\/d\//);
   await expect(ada.locator('[data-testid=diagram] svg')).toBeVisible();
+  await shareWith(ada, grace);
   await grace.goto(ada.url());
   await expect(grace.locator('[data-testid=diagram] svg')).toBeVisible();
 
@@ -52,6 +53,7 @@ test('save, preview and restore a version', async ({ browser }) => {
   const grace = await userPage(browser, 'Grace Hopper');
   await ada.getByRole('button', { name: 'New diagram' }).first().click();
   await ada.waitForURL(/\/d\//);
+  await shareWith(ada, grace);
   await grace.goto(ada.url());
   await expect(grace.locator('[data-testid=diagram] svg')).toBeVisible();
 
@@ -101,7 +103,7 @@ test('library: folders, star, search and trash', async ({ browser }) => {
   await page.getByRole('button', { name: 'New folder' }).click();
   await page.getByLabel('Folder name').fill(folder);
   await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click();
-  await page.getByRole('button', { name: 'All diagrams' }).click();
+  await page.getByRole('button', { name: 'My boards' }).click();
   await page.getByLabel('Search diagrams').fill(title);
   await page
     .getByTestId('diagram-card')
@@ -130,4 +132,30 @@ test('library: folders, star, search and trash', async ({ browser }) => {
     .click();
   await page.getByRole('menuitem', { name: 'Restore' }).click();
   await expect(page.getByTestId('diagram-card').filter({ hasText: title })).toHaveCount(0);
+});
+
+test('boards are private until shared; viewers are read-only', async ({ browser }) => {
+  const ada = await userPage(browser, 'Ada Lovelace');
+  const eve = await userPage(browser, 'Eve Outsider');
+  const vic = await userPage(browser, 'Vic Viewer');
+  await ada.getByRole('button', { name: 'New diagram' }).first().click();
+  await ada.waitForURL(/\/d\//);
+  await expect(ada.locator('[data-testid=diagram] svg')).toBeVisible();
+
+  // Someone with the link but no access can't open it.
+  await eve.goto(ada.url());
+  await expect(eve.getByText('This diagram does not exist.')).toBeVisible();
+
+  // A viewer sees live changes but can't edit.
+  await shareWith(ada, vic, 'Can view');
+  await vic.goto('/?view=shared');
+  await expect(vic.getByTestId('diagram-card')).toHaveCount(1);
+  await vic.goto(ada.url());
+  await expect(vic.getByTestId('view-only')).toBeVisible();
+  await typeAtEnd(ada, '\n    F --> V[Live for viewer]');
+  await expectEditorToContain(vic, 'V[Live for viewer]');
+  await typeAtEnd(vic, 'SHOULD NOT APPEAR');
+  await ada.waitForTimeout(800);
+  expect(await editorText(ada)).not.toContain('SHOULD NOT APPEAR');
+  expect(await editorText(vic)).not.toContain('SHOULD NOT APPEAR');
 });

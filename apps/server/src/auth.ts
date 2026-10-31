@@ -57,9 +57,11 @@ export const authOptions = {
         google: {
           clientId: env.GOOGLE_CLIENT_ID,
           clientSecret: env.GOOGLE_CLIENT_SECRET,
-          // One domain: Google hint + verified `hd` claim. Several: any Workspace domain,
-          // then the email-domain check below narrows it to the allowed list.
-          hd: allowedDomains.length === 1 ? allowedDomains[0] : '*',
+          // Optional Workspace restriction. One domain: Google hint + verified `hd` claim.
+          // Several: any Workspace domain, narrowed by the email-domain check below.
+          ...(allowedDomains.length
+            ? { hd: allowedDomains.length === 1 ? allowedDomains[0] : '*' }
+            : {}),
           prompt: 'select_account',
         },
       }

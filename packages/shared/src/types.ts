@@ -12,6 +12,18 @@ export interface Folder {
   createdAt: string;
 }
 
+/** Your access to a board: the creator owns it; others are added by the owner. */
+export type DiagramRole = 'owner' | 'editor' | 'viewer';
+export type MemberRole = Exclude<DiagramRole, 'owner'>;
+
+export interface DiagramMember {
+  email: string;
+  role: MemberRole;
+  /** Null until this person has signed in for the first time. */
+  user: PublicUser | null;
+  addedAt: string;
+}
+
 export interface DiagramSummary {
   id: string;
   title: string;
@@ -24,6 +36,10 @@ export interface DiagramSummary {
   updatedAt: string;
   deletedAt: string | null;
   starred: boolean;
+  /** The current user's access to this board. */
+  role: DiagramRole;
+  /** Number of people added to the board (excluding the owner). */
+  memberCount: number;
 }
 
 export type VersionKind = 'auto' | 'named' | 'restore';
