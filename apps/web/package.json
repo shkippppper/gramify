@@ -1,0 +1,51 @@
+{
+  "name": "@tidepool/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@hocuspocus/provider": "4.8.0",
+    "@mermaid-js/examples": "2.0.0",
+    "@mermaid-js/layout-tidy-tree": "^1.0.1",
+    "@mermaid-js/mermaid-zenuml": "^1.0.1",
+    "@tanstack/react-query": "^5.105.0",
+    "@tidepool/shared": "workspace:*",
+    "better-auth": "1.7.14",
+    "clsx": "^2",
+    "diff": "^8",
+    "hammerjs": "^2.0.8",
+    "lucide-react": "^1.66.0",
+    "mermaid": "12.2.0",
+    "monaco-editor": "0.55.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-resizable-panels": "^4.15.3",
+    "react-router": "^8.5.1",
+    "sonner": "^2",
+    "svg-pan-zoom": "3.6.2",
+    "svg2roughjs": "^3.2.3",
+    "y-monaco": "0.1.6",
+    "y-protocols": "1.0.7",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/hammerjs": "^2",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^27",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5",
+    "vitest": "5.0.5"
+  }
+}

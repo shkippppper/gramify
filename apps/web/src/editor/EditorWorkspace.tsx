@@ -1,0 +1,223 @@
+import clsx from 'clsx';
+import { BookOpen } from 'lucide-react';
+import { useCallback, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
+import { replaceText, useYText, type DiagramSession } from '../collab/session';
+import { Collapsible, Dialog, Button, Tabs } from '../components/ui';
+import { useTheme } from '../lib/theme';
+import { useLocalState } from '../lib/useLocalState';
+import { docsUrlFor } from '../render/mermaid';
+import { Preview, type PreviewApi, type PreviewHandle, type SharedView } from '../render/Preview';
+import { useDiagramRender } from '../render/useDiagramRender';
+import { Actions } from './Actions';
+import { CodeEditor, type EditorTab } from './CodeEditor';
+import { ErrorBar } from './ErrorBar';
+import { Samples } from './Samples';
+import type { monaco } from './monaco';
+
+interface Props {
+  session: DiagramSession;
+  title: string;
+  header: ReactNode;
+  /** Optional right-hand panel (e.g. version history). */
+  side?: ReactNode;
+  /** Override what the preview shows (e.g. a version being previewed). */
+  previewOverride?: { code: string; config: string } | null;
+  confirmSampleReplace?: boolean;
+  fullscreenHref?: string;
+  previewRef?: Ref<PreviewHandle>;
+  onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor | null) => void;
+  onPointer?: (p: { x: number; y: number } | null) => void;
+  onUserView?: (view: SharedView) => void;
+  overlay?: (api: PreviewApi) => ReactNode;
+  editorOverlay?: ReactNode;
+}
+
+const mobileQuery = typeof window !== 'undefined' ? matchMedia('(max-width: 639px)') : null;
+function useIsMobile() {
+  return useSyncExternalStore(
+    (cb) => {
+      mobileQuery?.addEventListener('change', cb);
+      return () => mobileQuery?.removeEventListener('change', cb);
+    },
+    () => !!mobileQuery?.matches,
+  );
+}
+
+export function EditorWorkspace(props: Props) {
+  const { session, title, header, side, previewOverride, confirmSampleReplace } = props;
+  const { dark } = useTheme();
+  const liveCode = useYText(session.code);
+  const liveConfig = useYText(session.config);
+  const code = previewOverride?.code ?? liveCode;
+  const config = previewOverride?.config ?? liveConfig;
+  const { result, error, pending } = useDiagramRender(code, config, dark);
+  const liveError = previewOverride ? null : error;
+
+  const [tab, setTab] = useState<EditorTab>('code');
+  const [rough, setRough] = useLocalState('tp-rough', false);
+  const [grid, setGrid] = useLocalState('tp-grid', true);
+  const [samplesOpen, setSamplesOpen] = useLocalState('tp-samples-open', false);
+  const [actionsOpen, setActionsOpen] = useLocalState('tp-actions-open', true);
+  const [mobileView, setMobileView] = useState<'edit' | 'view'>('edit');
+  const [pendingSample, setPendingSample] = useState<{ code: string; title: string } | null>(null);
+  const isMobile = useIsMobile();
+
+  const innerPreviewRef = useRef<PreviewHandle>(null);
+  const setPreviewRef = useCallback(
+    (h: PreviewHandle | null) => {
+      innerPreviewRef.current = h;
+      const r = props.previewRef;
+      if (typeof r === 'function') r(h);
+      else if (r) (r as { current: PreviewHandle | null }).current = h;
+    },
+    [props.previewRef],
+  );
+
+  const loadSample = (sampleCode: string) => {
+    replaceText(session.code, sampleCode, 'sample');
+    setTab('code');
+  };
+
+  const layout = useDefaultLayout({ id: side ? 'tp-layout-3' : 'tp-layout-2', storage: localStorage });
+
+  const codeMarker = liveError?.source === 'code' && liveError.line ? { line: liveError.line, message: liveError.message } : null;
+  const configMarker = liveError?.source === 'config' && liveError.line ? { line: liveError.line, message: liveError.message } : null;
+
+  const editorPane = (
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-2 py-1.5">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: 'code', label: 'Code' },
+            { value: 'config', label: 'Config' },
+          ]}
+        />
+        <div className="flex items-center gap-2">
+          {session.readOnly && <span className="text-xs text-muted">Read-only</span>}
+          <a
+            href={docsUrlFor(result?.diagramType)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-accent"
+          >
+            <BookOpen size={13} /> Docs
+          </a>
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1">
+        <CodeEditor
+          session={session}
+          tab={tab}
+          dark={dark}
+          codeMarker={codeMarker}
+          configMarker={configMarker}
+          onReady={props.onEditorReady}
+        />
+        {props.editorOverlay}
+      </div>
+      <ErrorBar error={liveError} />
+      <div className="max-h-[45%] shrink-0 overflow-auto">
+        {!session.readOnly && (
+          <Collapsible title="Sample diagrams" open={samplesOpen} onToggle={() => setSamplesOpen((o) => !o)}>
+            <Samples
+              onPick={(c, t) => (confirmSampleReplace && liveCode.trim() ? setPendingSample({ code: c, title: t }) : loadSample(c))}
+            />
+          </Collapsible>
+        )}
+        <Collapsible title="Actions" open={actionsOpen} onToggle={() => setActionsOpen((o) => !o)}>
+          <Actions getSvg={() => innerPreviewRef.current?.getExportSvg() ?? null} code={code} config={config} title={title} />
+        </Collapsible>
+      </div>
+    </div>
+  );
+
+  const previewPane = (
+    <Preview
+      ref={setPreviewRef}
+      svg={result?.svg ?? null}
+      bindFunctions={result?.bindFunctions}
+      stale={!!error || (pending && !result)}
+      rough={rough}
+      grid={grid}
+      onToggleRough={() => setRough((r) => !r)}
+      onToggleGrid={() => setGrid((g) => !g)}
+      fullscreenHref={props.fullscreenHref}
+      onPointer={props.onPointer}
+      onUserView={props.onUserView}
+      overlay={props.overlay}
+    />
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      {header}
+      {isMobile ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex justify-center border-b border-border bg-surface p-1.5">
+            <Tabs
+              value={mobileView}
+              onChange={setMobileView}
+              items={[
+                { value: 'edit', label: 'Edit' },
+                { value: 'view', label: 'View' },
+              ]}
+            />
+          </div>
+          <div className={clsx('min-h-0 flex-1', mobileView !== 'edit' && 'hidden')}>{editorPane}</div>
+          <div className={clsx('min-h-0 flex-1', mobileView !== 'view' && 'hidden')}>{previewPane}</div>
+        </div>
+      ) : (
+        <Group
+          orientation="horizontal"
+          className="min-h-0 flex-1"
+          defaultLayout={layout.defaultLayout}
+          onLayoutChanged={layout.onLayoutChanged}
+        >
+          <Panel id="editor" defaultSize="32" minSize="15">
+            {editorPane}
+          </Panel>
+          <Separator className="w-px" />
+          <Panel id="preview" minSize="15">
+            {previewPane}
+          </Panel>
+          {side && (
+            <>
+              <Separator className="w-px" />
+              <Panel id="side" defaultSize="24" minSize="15">
+                {side}
+              </Panel>
+            </>
+          )}
+        </Group>
+      )}
+      <Dialog
+        open={!!pendingSample}
+        onClose={() => setPendingSample(null)}
+        title="Replace diagram?"
+        footer={
+          <>
+            <Button onClick={() => setPendingSample(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              data-autofocus
+              onClick={() => {
+                if (pendingSample) loadSample(pendingSample.code);
+                setPendingSample(null);
+              }}
+            >
+              Replace
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          Load <strong className="text-fg">{pendingSample?.title}</strong>? This replaces the code for everyone in this
+          diagram. You can get the old version back from History.
+        </p>
+      </Dialog>
+    </div>
+  );
+}
