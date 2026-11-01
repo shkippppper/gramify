@@ -224,3 +224,99 @@ function locateRaw(code: string, c: Candidates): CodeRange | null {
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Code → diagram: which elements does a line of code define or mention?
+// ---------------------------------------------------------------------------
+
+/** Containers worth outlining (the whole shape rather than one inner path). */
+const SHAPE =
+  'g.node, g.cluster, g.edgeLabel, g.actor, g.architecture-service, g.c4-shape, rect.task, g.section, g.legend';
+
+interface ElementIndex {
+  names: Map<string, Element[]>;
+  edges: Array<{ from: string; to: string; els: Element[] }>;
+  texts: Array<{ text: string; el: Element }>;
+}
+
+const indexCache = new WeakMap<SVGSVGElement, ElementIndex>();
+
+function push<K>(map: Map<K, Element[]>, key: K, el: Element) {
+  const list = map.get(key);
+  if (list) {
+    if (!list.includes(el)) list.push(el);
+  } else map.set(key, [el]);
+}
+
+/** Build (once per rendered SVG) a lookup from code identifiers / edges / label texts to elements. */
+export function indexDiagram(svg: SVGSVGElement): ElementIndex {
+  const cached = indexCache.get(svg);
+  if (cached) return cached;
+  const prefix = svg.id ? `${svg.id}-` : '';
+  const names = new Map<string, Element[]>();
+  const edgeMap = new Map<string, { from: string; to: string; els: Element[] }>();
+  const texts: ElementIndex['texts'] = [];
+  for (const el of svg.querySelectorAll('[id], [data-id]')) {
+    const raws: string[] = [];
+    const dataId = el.getAttribute('data-id');
+    if (dataId)
+      raws.push(prefix && dataId.startsWith(prefix) ? dataId.slice(prefix.length) : dataId);
+    if (el.id && prefix && el.id.startsWith(prefix)) {
+      let rest = el.id.slice(prefix.length);
+      if (rest.startsWith(prefix)) rest = rest.slice(prefix.length);
+      raws.push(rest);
+    }
+    for (const raw of raws) {
+      const c: Candidates = { ids: [], edges: [], texts: [] };
+      parseMermaidId(raw, c);
+      const target = el.closest(SHAPE) ?? el;
+      for (const id of c.ids) push(names, id, target);
+      for (const [from, to] of c.edges) {
+        const key = `${from}\u0000${to}`;
+        const entry = edgeMap.get(key) ?? { from, to, els: [] };
+        if (!entry.els.includes(target)) entry.els.push(target);
+        edgeMap.set(key, entry);
+      }
+    }
+  }
+  for (const el of svg.querySelectorAll(SHAPE)) {
+    const t = clean(el.textContent);
+    if (t && t.length <= 120) texts.push({ text: t, el });
+  }
+  // Leaf texts too (pie legends, sequence messages, timeline events…).
+  for (const el of svg.querySelectorAll('text, foreignObject span, foreignObject p')) {
+    const t = clean(el.textContent);
+    if (t && t.length <= 120 && !el.closest(SHAPE)) texts.push({ text: t, el });
+  }
+  const index = { names, edges: [...edgeMap.values()], texts };
+  indexCache.set(svg, index);
+  return index;
+}
+
+const HEADER_RE =
+  /^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(-v2)?|erDiagram|gantt|pie|mindmap|timeline|journey|gitGraph|C4\w+|quadrantChart|requirementDiagram|sankey(-beta)?|xychart(-beta)?|block(-beta)?|packet(-beta)?|kanban|architecture(-beta)?|radar-beta|treemap(-beta)?)\b/;
+
+/** Elements of `svg` defined or referenced by `line` (1-based) of `code`. */
+export function elementsForLine(svg: SVGSVGElement, code: string, line: number): Element[] {
+  const raw = code.split('\n')[line - 1];
+  if (!raw || isComment(raw) || !raw.trim() || HEADER_RE.test(raw)) return [];
+  const text = raw.replace(/%%.*$/, '');
+  const index = indexDiagram(svg);
+  const found = new Set<Element>();
+  const has = (id: string) => wordRe(id).test(text);
+
+  for (const [name, els] of index.names) if (has(name)) els.forEach((el) => found.add(el));
+  const arrow = /--|->|\.\.|==|~~|<-|\|/.test(text);
+  for (const e of index.edges)
+    if (arrow && has(e.from) && has(e.to)) e.els.forEach((el) => found.add(el));
+  // Visible labels written on this line (e.g. a sequence message). Short labels only count
+  // when nothing else matched, to avoid lighting up every "A" or "OK" on the canvas.
+  const fallback = !found.size;
+  for (const { text: label, el } of index.texts) {
+    if ((label.length >= 4 || (fallback && label.length >= 2)) && text.includes(label)) {
+      found.add(el.closest(SHAPE) ?? el);
+    }
+  }
+  // Keep only the outermost elements (avoid outlining a shape and its own label twice).
+  return [...found].filter((el) => ![...found].some((o) => o !== el && o.contains(el)));
+}

@@ -89,3 +89,38 @@ describe('locateInCode', () => {
     expect(locateInCode(flow, cand(['Zzz'], ['nothing like this']))).toBeNull();
   });
 });
+
+describe('elementsForLine', () => {
+  const svgFrom = (markup: string) => {
+    document.body.innerHTML = markup;
+    return document.querySelector('svg') as SVGSVGElement;
+  };
+  const svg = () =>
+    svgFrom(`<svg id="r1">
+      <g class="node" id="r1-flowchart-A-0"><text>Christmas</text></g>
+      <g class="node" id="r1-flowchart-B-1"><text>Go shopping</text></g>
+      <g class="node" id="r1-flowchart-C-2"><text>Let me think</text></g>
+      <path id="r1-L_A_B_0" data-id="L_A_B_0"></path>
+      <g class="edgeLabel"><g class="label" data-id="L_A_B_0"><text>Get money</text></g></g>
+      <g class="legend"><text>Dogs</text></g>
+    </svg>`);
+  const ids = (els: Element[]) => els.map((e) => e.id || e.getAttribute('class')).sort();
+
+  it('finds nodes and the edge defined on a line', async () => {
+    const { elementsForLine } = await import('./locate');
+    const code = 'flowchart TD\n  A[Christmas] -->|Get money| B(Go shopping)\n  B --> C';
+    expect(ids(elementsForLine(svg(), code, 2))).toEqual([
+      'edgeLabel',
+      'r1-L_A_B_0',
+      'r1-flowchart-A-0',
+      'r1-flowchart-B-1',
+    ]);
+    expect(ids(elementsForLine(svg(), code, 3))).toEqual(['r1-flowchart-B-1', 'r1-flowchart-C-2']);
+  });
+  it('ignores headers and comments, falls back to label text', async () => {
+    const { elementsForLine } = await import('./locate');
+    expect(elementsForLine(svg(), 'flowchart TD\n%% A B', 1)).toEqual([]);
+    expect(elementsForLine(svg(), 'flowchart TD\n%% A B', 2)).toEqual([]);
+    expect(ids(elementsForLine(svg(), 'pie\n  "Dogs" : 386', 2))).toEqual(['legend']);
+  });
+});

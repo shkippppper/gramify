@@ -2,6 +2,7 @@ import tidyTreeLayouts from '@mermaid-js/layout-tidy-tree';
 import zenuml from '@mermaid-js/mermaid-zenuml';
 import type { MermaidConfig } from 'mermaid';
 import mermaid from 'mermaid';
+import { announceUpdate, isStaleBuildError, staleBuildDetected } from '../lib/updates';
 import { findErrorLine, normalizeErrorMessage } from './errors';
 
 mermaid.registerLayoutLoaders(tidyTreeLayouts);
@@ -144,6 +145,8 @@ export interface RenderFailure {
   error: string;
   line: number | null;
   diagramType?: string;
+  /** The code for this diagram type couldn't be loaded because the app was redeployed. */
+  staleBuild?: boolean;
 }
 export type RenderResult = RenderSuccess | RenderFailure;
 
@@ -192,6 +195,17 @@ export function renderDiagram(
         ms: performance.now() - started,
       };
     } catch (e) {
+      // Mermaid wraps failed module loads in its own errors; a failed preload is the tell.
+      if (isStaleBuildError(e) || staleBuildDetected()) {
+        announceUpdate();
+        return {
+          ok: false as const,
+          error: 'Gramify was updated. Reload the page to render this diagram.',
+          line: null,
+          diagramType,
+          staleBuild: true,
+        };
+      }
       const raw = errorText(e);
       const line = findErrorLine(raw, code, e);
       // mermaid may leave a temp error element in the body on failure.

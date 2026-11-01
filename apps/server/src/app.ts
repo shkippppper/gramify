@@ -87,6 +87,14 @@ export async function createServer(port = env.PORT) {
       await next();
       if (c.res.ok) c.res.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     });
+    // The HTML shell must never be cached: after a deploy it has to point at the new
+    // hashed asset files (old ones disappear with the old container).
+    app.use('*', async (c, next) => {
+      await next();
+      if ((c.res.headers.get('content-type') ?? '').includes('text/html')) {
+        c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    });
     app.use('*', serveStatic({ root }));
     app.get('*', (c) => c.html(indexHtml));
   }

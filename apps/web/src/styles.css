@@ -136,3 +136,8 @@ body {
   background: color-mix(in srgb, var(--tp-accent) 35%, transparent);
   border-radius: 2px;
 }
+
+/* Code → diagram: shapes for the editor's current line. */
+.tp-preview svg .tp-hl {
+  filter: drop-shadow(0 0 2px var(--tp-accent)) drop-shadow(0 0 5px var(--tp-accent));
+}

@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router';
 import { Toaster } from 'sonner';
 import { App } from './App';
 import { ApiError } from './lib/api';
+import { installUpdateDetection } from './lib/updates';
 import { useTheme } from './lib/theme';
 import '@fontsource/nunito/800.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -20,6 +21,8 @@ window.addEventListener('unhandledrejection', (e) => {
 const onApiError = (e: unknown) => {
   if (e instanceof ApiError && e.status === 401) queryClient.setQueryData(['me'], null);
 };
+installUpdateDetection();
+
 const queryClient: QueryClient = new QueryClient({
   queryCache: new QueryCache({ onError: onApiError }),
   mutationCache: new MutationCache({ onError: onApiError }),

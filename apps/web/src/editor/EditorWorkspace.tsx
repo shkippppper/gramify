@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { BookOpen } from 'lucide-react';
 import {
   useCallback,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -88,12 +89,45 @@ export function EditorWorkspace(props: Props) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const flashRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const propsOnEditorReady = props.onEditorReady;
+  // Code → diagram: follow the cursor line while the code editor has focus.
+  const [cursorLine, setCursorLine] = useState<number | null>(null);
+  const cursorSubs = useRef<Array<{ dispose(): void }>>([]);
   const onEditorReady = useCallback(
     (ed: monaco.editor.IStandaloneCodeEditor | null) => {
       editorRef.current = ed;
+      cursorSubs.current.forEach((d) => d.dispose());
+      cursorSubs.current = [];
+      if (ed) {
+        let t: ReturnType<typeof setTimeout> | undefined;
+        const update = () => {
+          clearTimeout(t);
+          t = setTimeout(() => {
+            const model = ed.getModel();
+            const pos = ed.getPosition();
+            setCursorLine(
+              ed.hasTextFocus() && model?.getLanguageId() === 'mermaid' && pos
+                ? pos.lineNumber
+                : null,
+            );
+          }, 60);
+        };
+        cursorSubs.current.push(
+          ed.onDidChangeCursorPosition(update),
+          ed.onDidFocusEditorText(update),
+          ed.onDidChangeModel(update),
+          ed.onDidBlurEditorText(() => {
+            clearTimeout(t);
+            setCursorLine(null);
+          }),
+        );
+      }
       propsOnEditorReady?.(ed);
     },
     [propsOnEditorReady],
+  );
+  const highlight = useMemo(
+    () => (!previewOverride && cursorLine ? { code: liveCode, line: cursorLine } : null),
+    [previewOverride, cursorLine, liveCode],
   );
   const revealRange = useCallback((r: CodeRange) => {
     const ed = editorRef.current;
@@ -253,6 +287,7 @@ export function EditorWorkspace(props: Props) {
       onUserView={props.onUserView}
       overlay={props.overlay}
       onElementClick={previewOverride ? undefined : jumpToCode}
+      highlight={highlight}
     />
   );
 

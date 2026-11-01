@@ -61,3 +61,14 @@ test('clicking a diagram element jumps to and selects its code', async ({ page }
     .toContain('D[Notebook]');
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('Notebook');
 });
+
+test('the cursor line highlights its shapes in the diagram', async ({ page }) => {
+  await page.goto('/play');
+  await expect(page.locator('[data-testid=diagram] svg')).toBeVisible();
+  // Line 6: C -->|Two| E[iPhone]
+  await page.locator('[data-testid=code-editor] .view-line').filter({ hasText: 'iPhone' }).click();
+  const lit = page.locator('[data-testid=diagram] .tp-hl');
+  await expect(lit.filter({ hasText: 'iPhone' })).toHaveCount(1);
+  await expect(lit.filter({ hasText: 'Let me think' })).toHaveCount(1);
+  await expect(lit.filter({ hasText: 'Laptop' })).toHaveCount(0);
+});

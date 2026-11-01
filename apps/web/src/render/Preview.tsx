@@ -14,6 +14,7 @@ import {
 import svgPanZoom from 'svg-pan-zoom';
 import { IconButton } from '../components/ui';
 import { throttleTrailing } from '../lib/throttle';
+import { elementsForLine } from './locate';
 import { MERMAID_VERSION } from './mermaid';
 import { sketchSvg } from './rough';
 
@@ -62,6 +63,8 @@ interface Props {
   overlay?: (api: PreviewApi) => ReactNode;
   /** Click (not drag) on a diagram element: used to jump to its code. */
   onElementClick?: (target: Element, svg: SVGSVGElement) => void;
+  /** Outline the shapes defined/used on this line of `code` (code → diagram). */
+  highlight?: { code: string; line: number } | null;
   /** Hide toolbars (embed / view mode). */
   chrome?: boolean;
 }
@@ -80,6 +83,7 @@ export function Preview({
   onPointer,
   overlay,
   onElementClick,
+  highlight,
   chrome = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +96,8 @@ export function Preview({
   const dirtyRef = useRef(false);
   const programmatic = useRef(false);
   const [version, setVersion] = useState(0);
+  /** Bumps when a new SVG has been placed (not on pan/zoom). */
+  const [placed, setPlaced] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const bump = useCallback(() => setVersion((v) => v + 1), []);
   const getViewRef = useRef<(() => SharedView | null) | null>(null);
@@ -261,6 +267,7 @@ export function Preview({
       pzRef.current = pz;
       if (keep) setView(keep);
       else fit();
+      setPlaced((n) => n + 1);
     })();
     return () => {
       cancelled = true;
@@ -274,6 +281,16 @@ export function Preview({
     },
     [],
   );
+
+  // Code → diagram: outline the shapes for the editor's current line.
+  useEffect(() => {
+    const svgEl = svgElRef.current;
+    if (!svgEl) return;
+    svgEl.querySelectorAll('.tp-hl').forEach((n) => n.classList.remove('tp-hl'));
+    if (!highlight) return;
+    for (const el of elementsForLine(svgEl, highlight.code, highlight.line))
+      el.classList.add('tp-hl');
+  }, [highlight, placed]);
 
   // Keep the diagram fitted on resize until the user pans/zooms.
   useEffect(() => {

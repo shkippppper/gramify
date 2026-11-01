@@ -39,7 +39,12 @@ export function Thumbnail({
     const cfg = parseConfig(config);
     renderDiagram(code, cfg.ok ? cfg.config : {}, { dark: false }).then((res) => {
       const url = res.ok ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(res.svg)}` : null;
-      cache.set(key, url);
+      // A failed load after a redeploy isn't the diagram's fault: don't remember it.
+      if (res.ok || !res.staleBuild) cache.set(key, url);
+      if (!res.ok && res.staleBuild) {
+        if (!cancelled) setSrc('stale');
+        return;
+      }
       if (!cancelled) setSrc(url);
     });
     return () => {
@@ -49,7 +54,7 @@ export function Thumbnail({
 
   return (
     <div ref={ref} className={className}>
-      {src ? (
+      {src && src !== 'stale' ? (
         <img
           src={src}
           alt=""
@@ -57,6 +62,10 @@ export function Thumbnail({
           loading="lazy"
           draggable={false}
         />
+      ) : src === 'stale' ? (
+        <div className="grid size-full place-items-center text-center text-xs text-muted">
+          Reload to preview
+        </div>
       ) : src === null ? (
         <div className="grid size-full place-items-center text-xs text-muted">Syntax error</div>
       ) : (
