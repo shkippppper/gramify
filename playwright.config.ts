@@ -36,6 +36,7 @@ export default defineConfig({
         BETTER_AUTH_URL: `http://localhost:${WEB_PORT}`,
         BETTER_AUTH_SECRET: 'e2e-secret-e2e-secret-e2e-secret-1234',
         DEV_LOGIN: 'true',
+        MAX_BOARDS_PER_USER: '0',
         ALLOWED_GOOGLE_DOMAIN: 'example.com',
       },
     },

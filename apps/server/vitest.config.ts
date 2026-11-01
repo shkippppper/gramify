@@ -9,6 +9,7 @@ export default defineConfig({
       BETTER_AUTH_URL: 'http://localhost:5173',
       BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-123',
       DEV_LOGIN: 'true',
+      MAX_BOARDS_PER_USER: '0',
       ALLOWED_GOOGLE_DOMAIN: 'example.com',
     },
     testTimeout: 20_000,

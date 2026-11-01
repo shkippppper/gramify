@@ -15,6 +15,7 @@ A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor 
   - Avatars of who is here, and a follow mode
   - The diagram title updates live for everyone
   - Undo only undoes your own changes
+- **Board limit:** each person can own up to 5 boards by default (trash included), to keep the shared server small. A meter in the sidebar shows usage; change it with `MAX_BOARDS_PER_USER`.
 - **Library:** nested folders (drag diagrams onto them), recent, starred, search over titles and code, trash, duplicate, and live "who's editing" avatars on each card.
 - **Version history:**
   - Automatic snapshots while people edit, plus named versions

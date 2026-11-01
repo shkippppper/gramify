@@ -543,3 +543,28 @@ describe('access changes keep sync alive', () => {
     b.destroy();
   });
 });
+
+describe('board quota', () => {
+  it('limits boards per owner (trash included) and empty-trash frees space', async () => {
+    const { env } = await import('./env.ts');
+    const prev = env.MAX_BOARDS_PER_USER;
+    env.MAX_BOARDS_PER_USER = 2;
+    try {
+      const quinn = await signIn(`quinn.${Date.now()}@example.com`, 'Quinn');
+      const a = (await quinn.call('POST', '/diagrams', { title: 'One' })).body;
+      await quinn.call('POST', '/diagrams', { title: 'Two' });
+      expect((await quinn.call('GET', '/diagrams/usage')).body).toEqual({ used: 2, limit: 2 });
+      const third = await quinn.call('POST', '/diagrams', { title: 'Three' });
+      expect(third.status).toBe(403);
+      expect(third.body.error).toMatch(/up to 2 boards/);
+      expect((await quinn.call('POST', `/diagrams/${a.id}/duplicate`)).status).toBe(403);
+      // Trashed boards still count until the trash is emptied.
+      await quinn.call('DELETE', `/diagrams/${a.id}`);
+      expect((await quinn.call('POST', '/diagrams', { title: 'Three' })).status).toBe(403);
+      expect((await quinn.call('POST', '/diagrams/empty-trash')).body).toEqual({ deleted: 1 });
+      expect((await quinn.call('POST', '/diagrams', { title: 'Three' })).status).toBe(201);
+    } finally {
+      env.MAX_BOARDS_PER_USER = prev;
+    }
+  });
+});

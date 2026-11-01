@@ -218,10 +218,10 @@ export function DiagramCard({
 
   // The frame is a fixed 4:3 box: min-h-0 + overflow-hidden stop tall diagrams from stretching it.
   const frame =
-    'relative block aspect-[4/3] min-h-0 overflow-hidden border-b border-border bg-white p-3';
+    'relative block aspect-[4/3] min-h-0 overflow-hidden rounded-t-xl border-b border-border bg-white p-3';
   return (
     <div
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md"
+      className="group relative flex flex-col rounded-xl border border-border bg-surface transition-shadow focus-within:z-10 hover:z-10 hover:shadow-md"
       {...dragProps}
       data-testid="diagram-card"
     >

@@ -15,6 +15,7 @@ import { requireRole, roleExpr } from '../access.ts';
 import type { SessionUser } from '../auth.ts';
 import { closeDiagram, currentContent, disconnectUser, editDoc, presence } from '../collab.ts';
 import { db } from '../db/index.ts';
+import { env } from '../env.ts';
 import type { DiagramTable } from '../db/schema.ts';
 import { assertUuid, requireUser, type AppEnv } from './context.ts';
 import { zValidator } from './validate.ts';
@@ -163,6 +164,25 @@ async function ownFolder(folderId: string | null | undefined, me: SessionUser) {
   return f.id;
 }
 
+/** How many boards a user owns (trash included: it still takes space) and the limit. */
+export async function boardUsage(userId: string) {
+  const row = await db
+    .selectFrom('diagram')
+    .select((eb) => eb.fn.countAll<number>().as('n'))
+    .where('owner_id', '=', userId)
+    .executeTakeFirstOrThrow();
+  return { used: Number(row.n), limit: env.MAX_BOARDS_PER_USER || null };
+}
+
+async function assertBoardQuota(userId: string) {
+  const { used, limit } = await boardUsage(userId);
+  if (limit && used >= limit) {
+    throw new HTTPException(403, {
+      message: `You can have up to ${limit} boards (boards in your trash count too). Delete one forever, or empty your trash, to make room.`,
+    });
+  }
+}
+
 export const diagrams = new Hono<AppEnv>()
   .use(requireUser)
   .get('/', zValidator('query', listQuery), async (c) => {
@@ -220,6 +240,7 @@ export const diagrams = new Hono<AppEnv>()
   .post('/', zValidator('json', createBody), async (c) => {
     const body = c.req.valid('json');
     const me = c.get('user');
+    await assertBoardQuota(me.id);
     const row = await db
       .insertInto('diagram')
       .values({
@@ -235,6 +256,16 @@ export const diagrams = new Hono<AppEnv>()
       .returning('id')
       .executeTakeFirstOrThrow();
     return c.json(await getSummary(row.id, me), 201);
+  })
+  .get('/usage', async (c) => c.json(await boardUsage(c.get('user').id)))
+  .post('/empty-trash', async (c) => {
+    const me = c.get('user');
+    const res = await db
+      .deleteFrom('diagram')
+      .where('owner_id', '=', me.id)
+      .where('deleted_at', 'is not', null)
+      .executeTakeFirst();
+    return c.json({ deleted: Number(res.numDeletedRows ?? 0) });
   })
   .get('/:id', async (c) => {
     const id = assertUuid(c.req.param('id'));
@@ -276,6 +307,7 @@ export const diagrams = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     const me = c.get('user');
     const role = await requireRole(id, me, 'viewer');
+    await assertBoardQuota(me.id);
     const src = await db
       .selectFrom('diagram')
       .selectAll()

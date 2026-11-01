@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BRAND, type DiagramSummary, type Folder } from '@gramify/shared';
 import clsx from 'clsx';
 import {
@@ -26,7 +26,14 @@ import { SAMPLE_FAMILIES } from '../editor/samples';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import { Thumbnail } from '../library/Thumbnail';
-import { useDiagrams, useFolders, useLibraryMutation } from '../library/useLibrary';
+import {
+  quotaMessage,
+  useDiagrams,
+  useFolders,
+  useLibraryMutation,
+  useStar,
+  useUsage,
+} from '../library/useLibrary';
 import { api, type LibraryView, type SortKey } from '../lib/api';
 import { useMe } from '../lib/auth';
 import { deriveTitle, importErrorMessage, parseFile, parseImport } from '../lib/import';
@@ -169,12 +176,36 @@ export function LibraryPage() {
   const me = useMe();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const create = useMutation({
+  const usage = useUsage();
+  const atLimit = !!usage.data?.limit && usage.data.used >= usage.data.limit;
+  const qcClient = useQueryClient();
+  const createMutation = useMutation({
     mutationFn: (b: { title?: string; code?: string; config?: string }) =>
       api.createDiagram({ ...b, folderId: view === 'mine' ? folderId : null }),
-    onSuccess: (d) => navigate(`/d/${d.id}`),
+    onSuccess: (d) => {
+      void qcClient.invalidateQueries({ queryKey: ['usage'] });
+      navigate(`/d/${d.id}`);
+    },
     onError: (e) => toast.error((e as Error).message),
   });
+  // Explain the limit up front instead of failing after a round trip.
+  const create = {
+    ...createMutation,
+    mutate: (b: { title?: string; code?: string; config?: string }) => {
+      if (atLimit && usage.data?.limit) {
+        toast.error(quotaMessage(usage.data.limit), {
+          action:
+            view === 'trash'
+              ? undefined
+              : { label: 'Open trash', onClick: () => select('trash', null) },
+        });
+        return;
+      }
+      createMutation.mutate(b);
+    },
+  };
+  const [emptyingTrash, setEmptyingTrash] = useState(false);
+  const emptyTrash = useLibraryMutation(() => api.emptyTrash(), 'Trash emptied');
 
   const rename = useLibraryMutation((p: { id: string; title: string }) =>
     api.updateDiagram(p.id, { title: p.title }),
@@ -185,7 +216,7 @@ export function LibraryPage() {
     'Moved',
   );
   const duplicate = useLibraryMutation((id: string) => api.duplicateDiagram(id));
-  const star = useLibraryMutation((d: DiagramSummary) => api.star(d.id, !d.starred));
+  const star = useStar();
   const trash = useLibraryMutation((id: string) => api.trashDiagram(id));
   const restore = useLibraryMutation((id: string) => api.restoreDiagram(id), 'Restored');
   const leave = useLibraryMutation(
@@ -204,12 +235,17 @@ export function LibraryPage() {
       setMoving(d);
     },
     duplicate: (d) =>
-      duplicate.mutate(d.id, {
-        onSuccess: (copy) =>
-          toast.success('Duplicated to My boards', {
-            action: { label: 'Open', onClick: () => navigate(`/d/${(copy as DiagramSummary).id}`) },
+      atLimit && usage.data?.limit
+        ? void toast.error(quotaMessage(usage.data.limit))
+        : duplicate.mutate(d.id, {
+            onSuccess: (copy) =>
+              toast.success('Duplicated to My boards', {
+                action: {
+                  label: 'Open',
+                  onClick: () => navigate(`/d/${(copy as DiagramSummary).id}`),
+                },
+              }),
           }),
-      }),
     star: (d) => star.mutate(d),
     trash: (d) =>
       trash.mutate(d.id, {
@@ -439,10 +475,17 @@ export function LibraryPage() {
             </div>
 
             {view === 'trash' && (
-              <p className="mb-4 text-xs text-muted">
-                Only boards you own appear here. Restore them, or delete them forever (this also
-                deletes their history).
-              </p>
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <p className="min-w-0 flex-1 text-xs text-muted">
+                  Only boards you own appear here, and they still count toward your board limit.
+                  Restore them, or delete them forever (this also deletes their history).
+                </p>
+                {diagrams.length > 0 && (
+                  <Button size="sm" variant="danger" onClick={() => setEmptyingTrash(true)}>
+                    Empty trash
+                  </Button>
+                )}
+              </div>
             )}
 
             {subfolders.length > 0 && (
@@ -697,6 +740,31 @@ export function LibraryPage() {
         <p className="text-sm text-muted">
           <strong className="text-fg">{deleting?.title}</strong> and its version history will be
           permanently deleted. This can’t be undone.
+        </p>
+      </Dialog>
+
+      <Dialog
+        open={emptyingTrash}
+        onClose={() => setEmptyingTrash(false)}
+        title="Empty trash?"
+        footer={
+          <>
+            <Button onClick={() => setEmptyingTrash(false)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                emptyTrash.mutate(undefined);
+                setEmptyingTrash(false);
+              }}
+            >
+              Delete all forever
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          Every board in your trash and its version history will be permanently deleted. This can’t
+          be undone.
         </p>
       </Dialog>
 

@@ -17,7 +17,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { api, type LibraryView } from '../lib/api';
 import { useLocalState } from '../lib/useLocalState';
 import { Button, Dialog, IconButton, Input, Menu } from '../components/ui';
-import { useLibraryMutation } from './useLibrary';
+import { useLibraryMutation, useUsage } from './useLibrary';
 
 export const DND_TYPE = 'application/x-gramify-diagram';
 
@@ -86,6 +86,45 @@ function NavItem({
         <span className="truncate">{children}</span>
       </button>
       {trailing}
+    </div>
+  );
+}
+
+function UsageMeter() {
+  const usage = useUsage();
+  const u = usage.data;
+  if (!u?.limit) return null;
+  const full = u.used >= u.limit;
+  return (
+    <div
+      className="mx-2 mb-2 rounded-lg border border-border px-3 py-2"
+      title="Each person can own a limited number of boards, to keep the shared server small. Boards in the trash count too."
+      data-testid="usage"
+    >
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted">Your boards</span>
+        <span className={clsx('font-medium', full ? 'text-danger' : 'text-fg')}>
+          {u.used} of {u.limit}
+        </span>
+      </div>
+      <div
+        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={u.limit}
+        aria-valuenow={u.used}
+        aria-label="Boards used"
+      >
+        <div
+          className={clsx('h-full rounded-full', full ? 'bg-danger' : 'bg-accent')}
+          style={{ width: `${Math.min(100, (u.used / u.limit) * 100)}%` }}
+        />
+      </div>
+      {full && (
+        <p className="mt-1.5 text-[11px] leading-4 text-muted">
+          Limit reached. Empty the trash or delete a board to make room.
+        </p>
+      )}
     </div>
   );
 }
@@ -260,6 +299,7 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
       {(children.get(null) ?? []).map((f) => renderFolder(f, 0))}
       {folders.length === 0 && <p className="px-2 text-xs text-muted">No folders yet.</p>}
       <div className="mt-auto pt-4">
+        <UsageMeter />
         <NavItem
           active={view === 'trash'}
           onClick={() => onSelect('trash', null)}

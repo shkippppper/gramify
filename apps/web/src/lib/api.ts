@@ -59,6 +59,8 @@ export const api = {
       `/diagrams?${qs}`,
     );
   },
+  usage: () => request<{ used: number; limit: number | null }>('GET', '/diagrams/usage'),
+  emptyTrash: () => request<{ deleted: number }>('POST', '/diagrams/empty-trash'),
   getDiagram: (id: string) => request<DiagramSummary>('GET', `/diagrams/${id}`),
   createDiagram: (b: {
     title?: string;

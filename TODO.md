@@ -41,7 +41,8 @@ Each item says why it matters and roughly where the work goes.
 ## Library
 
 - [ ] Drag folders to reorganise them, and show how many boards each folder holds in the sidebar.
-- [ ] An **Empty trash** button, plus a note on how long trashed boards are kept, and optional automatic deletion.
+- [x] An **Empty trash** button (done; trash counts toward the board limit).
+- [ ] Optional automatic deletion of boards that have been in the trash for a while.
 - [ ] **Quick open** with Ctrl/Cmd+K: fuzzy-search board titles, and show "matched in code" for search hits.
 
 ## Editor

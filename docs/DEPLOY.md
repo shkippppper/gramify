@@ -71,7 +71,7 @@ claim from Google.
    | `GOOGLE_CLIENT_SECRET`  | from step 1                                                                                 |
    | `ALLOWED_GOOGLE_DOMAIN` | _optional_: only if you want to restrict sign-in to a Google Workspace domain               |
 
-   Optionally add `CONTACT_EMAIL` (shown on the privacy and terms pages). Railway sets `PORT` for you. **Do not** set `DEV_LOGIN` in production; it is ignored there anyway.
+   Optionally set `MAX_BOARDS_PER_USER` (default `5`, boards each person may own including their trash; `0` = unlimited). Optionally add `CONTACT_EMAIL` (shown on the privacy and terms pages). Railway sets `PORT` for you. **Do not** set `DEV_LOGIN` in production; it is ignored there anyway.
 
 5. Check that **Settings → Deploy → Serverless / App Sleeping** is **off**, and that replicas is **1**.
    Live collaboration keeps open documents in the server's memory, so the service has to stay awake
