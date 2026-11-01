@@ -81,7 +81,10 @@ export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onRea
     const codeBinding = new MonacoBinding(session.code, code, editors, session.awareness);
     const configBinding = new MonacoBinding(session.config, config, editors, session.awareness);
     const undo = {
-      code: new Y.UndoManager(session.code, { trackedOrigins: new Set([codeBinding]) }),
+      // 'sample' = loading a sample replaces the code; make that undoable with Ctrl+Z too.
+      code: new Y.UndoManager(session.code, {
+        trackedOrigins: new Set<unknown>([codeBinding, 'sample']),
+      }),
       config: new Y.UndoManager(session.config, { trackedOrigins: new Set([configBinding]) }),
     };
     undoRef.current = undo;
@@ -111,7 +114,7 @@ export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onRea
       modelsRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [session.doc, session.awareness]); // not `session`: a role change must not rebuild the editor
 
   // Switch tabs by swapping models, preserving scroll/cursor per tab.
   useEffect(() => {

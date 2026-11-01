@@ -1,6 +1,7 @@
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { colorForId, docNameFor, type PresenceState, type PublicUser } from '@gramify/shared';
-import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import { sessionFromDoc, type DiagramSession } from './session';
 
@@ -25,8 +26,13 @@ function collabUrl() {
 export function useCollab(
   diagramId: string | undefined,
   me: PublicUser | null | undefined,
-  readOnly = false,
+  opts: { readOnly?: boolean; mode?: 'edit' | 'view' } = {},
 ): CollabState {
+  const qc = useQueryClient();
+  // Only the initial guess: the server's auth scope decides afterwards (see 'authenticated').
+  const initialReadOnly = useRef(!!opts.readOnly);
+  initialReadOnly.current = !!opts.readOnly;
+  const mode = opts.mode ?? 'edit';
   const [state, setState] = useState<CollabState>({
     session: null,
     provider: null,
@@ -56,10 +62,12 @@ export function useCollab(
       pointer: null,
       tab: 'code',
       view: null,
+      mode,
     };
     for (const [k, v] of Object.entries(presence)) awareness.setLocalStateField(k, v);
 
-    const session = sessionFromDoc(doc, awareness, readOnly);
+    const session = sessionFromDoc(doc, awareness, initialReadOnly.current);
+    let unsynced = 0;
     setState({ session, provider, status: 'connecting', synced: false, unsynced: 0, error: null });
 
     provider.on('status', ({ status }: { status: CollabStatus }) =>
@@ -68,24 +76,32 @@ export function useCollab(
     provider.on('synced', ({ state: synced }: { state: boolean }) =>
       setState((s) => ({ ...s, synced })),
     );
-    provider.on('unsyncedChanges', ({ number }: { number: number }) =>
-      setState((s) => ({ ...s, unsynced: number })),
-    );
+    provider.on('unsyncedChanges', ({ number }: { number: number }) => {
+      unsynced = number;
+      setState((s) => ({ ...s, unsynced: number }));
+    });
     // The server decides access; follow it if the owner changes our role mid-session.
     provider.on('authenticated', ({ scope }: { scope: 'read-write' | 'readonly' }) =>
       setState((s) => {
         const ro = scope === 'readonly';
-        return s.session && s.session.readOnly !== ro
-          ? { ...s, session: { ...s.session, readOnly: ro } }
-          : s;
+        if (!s.session || s.session.readOnly === ro) return s;
+        // Refresh the board's REST summary too, so badges/History agree with the editor.
+        void qc.invalidateQueries({ queryKey: ['diagram', diagramId] });
+        return { ...s, session: { ...s.session, readOnly: ro } };
       }),
     );
     provider.on('authenticationFailed', ({ reason }: { reason: string }) =>
       setState((s) => ({ ...s, error: reason || 'You do not have access to this diagram.' })),
     );
 
-    // Clear our presence promptly when the tab closes.
-    const onUnload = () => awareness.setLocalState(null);
+    // Warn before closing with edits that haven't reached the server; otherwise clear presence.
+    const onUnload = (e: BeforeUnloadEvent) => {
+      if (unsynced > 0) {
+        e.preventDefault();
+        return;
+      }
+      awareness.setLocalState(null);
+    };
     window.addEventListener('beforeunload', onUnload);
 
     return () => {
@@ -94,7 +110,7 @@ export function useCollab(
       provider.destroy();
       doc.destroy();
     };
-  }, [diagramId, me?.id, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [diagramId, me?.id, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return state;
 }
@@ -105,8 +121,9 @@ export function remotePeers(session: DiagramSession | null): Array<[number, Pres
   if (!aw) return [];
   const out: Array<[number, PresenceState]> = [];
   aw.getStates().forEach((st, id) => {
-    if (id !== aw.clientID && (st as Partial<PresenceState>).user)
-      out.push([id, st as PresenceState]);
+    const p = st as Partial<PresenceState> & { mode?: string };
+    // Full-screen viewers aren't editing (and have nothing to follow).
+    if (id !== aw.clientID && p.user && p.mode !== 'view') out.push([id, st as PresenceState]);
   });
   return out;
 }

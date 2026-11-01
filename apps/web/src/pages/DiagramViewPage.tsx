@@ -19,7 +19,7 @@ function LiveView({ session }: { session: DiagramSession }) {
 export function DiagramViewPage() {
   const id = useParams<{ id: string }>().id?.toLowerCase();
   const me = useMe();
-  const collab = useCollab(id, me.data);
+  const collab = useCollab(id, me.data, { mode: 'view' });
   if (collab.error)
     return <div className="grid h-full place-items-center text-sm text-danger">{collab.error}</div>;
   if (!collab.session || !collab.synced) return <FullPageSpinner />;

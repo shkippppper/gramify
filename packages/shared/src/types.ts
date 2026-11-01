@@ -70,4 +70,6 @@ export interface PresenceState {
   tab: 'code' | 'config';
   /** What part of the diagram they're looking at (normalized center + scale), for follow mode. */
   view: { cx: number; cy: number; scale: number } | null;
+  /** 'view' for the full-screen viewer page (not editing, not followable). */
+  mode?: 'edit' | 'view';
 }

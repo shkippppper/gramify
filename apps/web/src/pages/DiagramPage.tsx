@@ -9,7 +9,7 @@ import { useVersionContent } from '../history/useVersionContent';
 import { serializeState } from '@gramify/shared';
 import clsx from 'clsx';
 import { ChevronRight, Eye, History, Link2, Share2, Square, Users } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import * as Y from 'yjs';
@@ -28,6 +28,7 @@ import { HistoryPanel } from '../history/HistoryPanel';
 import { api, ApiError } from '../lib/api';
 import { FullPageSpinner, useMe } from '../lib/auth';
 import { formatDateTime } from '../lib/time';
+import { throttleTrailing } from '../lib/throttle';
 import { useLocalState } from '../lib/useLocalState';
 import type { PreviewHandle, SharedView } from '../render/Preview';
 
@@ -47,7 +48,7 @@ function StatusBadge({
         : 'Saving…'
       : status === 'connecting'
         ? 'Connecting…'
-        : 'Offline: changes kept locally';
+        : 'Offline: keep this tab open';
   return (
     <span
       className="hidden items-center gap-1.5 text-xs text-muted sm:flex"
@@ -118,11 +119,9 @@ export function DiagramPage() {
     retry: false,
   });
   const folders = useQuery({ queryKey: ['folders'], queryFn: api.listFolders });
-  const collab = useCollab(
-    summary.data && !summary.data.deletedAt ? id : undefined,
-    me.data,
-    summary.data?.role === 'viewer',
-  );
+  const collab = useCollab(summary.data && !summary.data.deletedAt ? id : undefined, me.data, {
+    readOnly: summary.data?.role === 'viewer',
+  });
   const [shareOpen, setShareOpen] = useState(false);
   const session = collab.session;
 
@@ -153,26 +152,34 @@ export function DiagramPage() {
   }, [qc]);
 
   // ---- presence: pointer + view broadcast ----
-  const lastView = useRef(0);
   const onPointer = useCallback(
     (p: { x: number; y: number } | null) => session?.awareness?.setLocalStateField('pointer', p),
     [session],
   );
-  const onUserView = useCallback(
-    (view: SharedView) => {
-      setFollowing(null);
-      const now = performance.now();
-      if (now - lastView.current < 100) return;
-      lastView.current = now;
-      session?.awareness?.setLocalStateField('view', view);
-    },
+  // Broadcast our view (throttled, always delivering the final one) for followers.
+  const sendView = useMemo(
+    () =>
+      throttleTrailing(
+        (view: SharedView) => session?.awareness?.setLocalStateField('view', view),
+        100,
+      ),
     [session],
+  );
+  useEffect(() => () => sendView.cancel(), [sendView]);
+  const onUserView = useCallback(
+    (view: SharedView, byUser: boolean) => {
+      if (byUser) setFollowing(null);
+      sendView(view);
+    },
+    [sendView],
   );
 
   // ---- follow mode: mirror the followed user's preview view and caret ----
   useEffect(() => {
     const aw = session?.awareness;
     if (!aw || following == null) return;
+    let lastView = '';
+    let lastSel = '';
     const apply = () => {
       const st = aw.getStates().get(following) as PresenceState | undefined;
       if (!st) {
@@ -180,7 +187,14 @@ export function DiagramPage() {
         toast.message('They left the diagram');
         return;
       }
-      if (st.view) previewRef.current?.setView(st.view);
+      // Awareness changes for every peer's pointer at ~30 Hz: only act on real changes.
+      const viewKey = JSON.stringify(st.view);
+      const selKey = JSON.stringify((st as unknown as { selection?: unknown }).selection ?? null);
+      if (viewKey === lastView && selKey === lastSel) return;
+      const viewChanged = viewKey !== lastView;
+      lastView = viewKey;
+      lastSel = selKey;
+      if (st.view && viewChanged) previewRef.current?.setView(st.view);
       const sel = (st as unknown as { selection?: { head?: Y.RelativePosition } }).selection;
       const editor = editorRef.current;
       const model = editor?.getModel();
@@ -292,7 +306,10 @@ export function DiagramPage() {
                 <Button
                   size="sm"
                   variant={historyOpen ? 'secondary' : 'ghost'}
-                  onClick={() => setHistoryOpen((o) => !o)}
+                  onClick={() => {
+                    if (historyOpen) setPreviewing(null);
+                    setHistoryOpen(!historyOpen);
+                  }}
                   aria-pressed={historyOpen}
                 >
                   <History size={14} /> <span className="hidden lg:inline">History</span>
@@ -383,7 +400,7 @@ function DiagramWorkspace({
   previewRef: React.RefObject<PreviewHandle | null>;
   onEditorReady: (e: monaco.editor.IStandaloneCodeEditor | null) => void;
   onPointer: (p: { x: number; y: number } | null) => void;
-  onUserView: (v: SharedView) => void;
+  onUserView: (v: SharedView, byUser: boolean) => void;
 }) {
   const liveTitle = useYMapValue<string>(session.meta, 'title') ?? title;
   const previewContent = useVersionContent(diagramId, previewing?.id);
@@ -422,8 +439,9 @@ function HistoryPanelLive(props: {
   onPreview: (v: DiagramVersion | null) => void;
   onClose: () => void;
 }) {
-  const code = useYText(props.session.code);
-  const config = useYText(props.session.config);
+  // Deferred: typing stays snappy while a version diff is open.
+  const code = useDeferredValue(useYText(props.session.code));
+  const config = useDeferredValue(useYText(props.session.config));
   return <HistoryPanel {...props} currentCode={code} currentConfig={config} />;
 }
 

@@ -57,7 +57,9 @@ export function PlaygroundPage() {
     <EditorWorkspace
       session={session}
       title="playground"
-      fullscreenHref={`/play/view${location.hash}`}
+      fullscreenHref={() =>
+        `/play/view#${serializeState({ code: session.code.toString(), mermaid: session.config.toString() })}`
+      }
       header={
         <TopBar
           left={<span className="truncate text-sm font-medium">Playground</span>}

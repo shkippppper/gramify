@@ -305,9 +305,23 @@ export async function currentContent(diagramId: string) {
   return row ? { code: row.code_text, config: row.config_text } : null;
 }
 
-/** Disconnect everyone from a diagram (e.g. after it was deleted). */
+/**
+ * Close the *socket* (not just the document) of matching connections. Hocuspocus's
+ * per-document close leaves the client's socket open and the provider never
+ * re-authenticates, silently stopping sync; a socket close makes the client reconnect
+ * and pass `onAuthenticate` again (getting its new role, or a clean "no access").
+ */
+function closeSockets(diagramId: string, match: (conn: { context?: CollabContext }) => boolean) {
+  const doc = hocuspocus.documents.get(docNameFor(diagramId));
+  if (!doc) return;
+  for (const conn of [...doc.connections.keys()]) {
+    if (match(conn)) conn.webSocket.close(4000, 'Access changed');
+  }
+}
+
+/** Disconnect everyone from a diagram (e.g. after it was moved to the trash). */
 export function closeDiagram(diagramId: string) {
-  hocuspocus.closeConnections(docNameFor(diagramId));
+  closeSockets(diagramId, () => true);
 }
 
 /**
@@ -315,12 +329,8 @@ export function closeDiagram(diagramId: string) {
  * (after being removed or getting a different role). Their client reconnects automatically.
  */
 export function disconnectUser(diagramId: string, email: string) {
-  const doc = hocuspocus.documents.get(docNameFor(diagramId));
-  if (!doc) return;
   const target = email.toLowerCase();
-  for (const conn of [...doc.connections.keys()]) {
-    if (conn.context?.user?.email?.toLowerCase() === target) conn.close();
-  }
+  closeSockets(diagramId, (conn) => conn.context?.user?.email?.toLowerCase() === target);
 }
 
 /** Who is currently connected to which diagram (for library cards). */

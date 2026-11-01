@@ -520,3 +520,26 @@ describe('overhaul regressions', () => {
     expect(one.code).toBe('pie\n "a": 1\n');
   });
 });
+
+describe('access changes keep sync alive', () => {
+  it('a member whose role changes reconnects and keeps syncing', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const bob = await signIn('bob@example.com', 'Bob');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'Roles', code: 'graph TD\n' }))
+      .body;
+    await ada.call('POST', `/diagrams/${id}/members`, { email: 'bob@example.com', role: 'editor' });
+    const a = connect(id, ada.cookie, 'ada');
+    const b = connect(id, bob.cookie, 'bob');
+    await Promise.all([a.synced, b.synced]);
+    // Re-saving the role disconnects Bob so access is re-checked…
+    await ada.call('POST', `/diagrams/${id}/members`, { email: 'bob@example.com', role: 'editor' });
+    await new Promise((r) => setTimeout(r, 300));
+    // …and his provider must come back: edits flow both ways again.
+    a.doc.getText(YDOC.code).insert(a.doc.getText(YDOC.code).length, '  A-->B\n');
+    await waitFor(() => b.doc.getText(YDOC.code).toString().includes('A-->B'), 10000);
+    b.doc.getText(YDOC.code).insert(b.doc.getText(YDOC.code).length, '  B-->C\n');
+    await waitFor(() => a.doc.getText(YDOC.code).toString().includes('B-->C'), 10000);
+    a.destroy();
+    b.destroy();
+  });
+});

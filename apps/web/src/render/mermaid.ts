@@ -46,7 +46,9 @@ export function sanitizeConfig(value: unknown, depth = 0): unknown {
     }
     return out;
   }
-  if (typeof value === 'string' && /[<>]|url\(\s*['"]?\s*(data|javascript):/i.test(value)) {
+  // No markup, no url(...) / @import: a shared diagram must not make viewers' browsers fetch
+  // anything (tracking pixels, remote CSS) or run script.
+  if (typeof value === 'string' && /[<>]|url\s*\(|@import|expression\s*\(/i.test(value)) {
     return undefined;
   }
   return value;
@@ -105,8 +107,9 @@ export const darkVariantOf = (theme: string) =>
 const managedThemes = new Set<string>();
 for (const t of [globalDefaultTheme, ...Object.values(defaultMermaidConfig).map(themeOf)]) {
   if (t) {
-    managedThemes.add(t);
-    managedThemes.add(darkVariantOf(t));
+    // Only the light default is managed (swapped for dark mode). An explicit dark theme in
+    // the config is the author's choice and is always honoured.
+    if (!t.includes('dark')) managedThemes.add(t);
   }
 }
 /** The editor may swap a theme the user did not deliberately choose. */

@@ -42,7 +42,15 @@ export function Actions({ getSvg, code, config, title }: Props) {
   };
   const bg = () => (transparent ? null : previewBackground());
   const png = (svg: string) =>
-    svgToPng(svg, { mode, size: Math.min(10000, Math.max(3, size || 1080)), background: bg() });
+    svgToPng(svg, {
+      mode,
+      size: Math.min(10000, Math.max(3, size || 1080)),
+      background: bg(),
+      onDownscale: (w, h) =>
+        toast.message(
+          `Large diagram: the image was scaled down to ${w}×${h}px to fit browser limits.`,
+        ),
+    });
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);

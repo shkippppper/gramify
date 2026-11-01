@@ -26,6 +26,8 @@ export function useDiagramRender(
   code: string,
   configText: string,
   dark: boolean,
+  /** Changing this discards the last good render (e.g. switching to a version preview). */
+  resetKey = '',
 ): DiagramRenderState {
   const [state, setState] = useState<DiagramRenderState>({
     result: null,
@@ -34,6 +36,12 @@ export function useDiagramRender(
   });
   const slow = useRef(false);
   const seq = useRef(0);
+  const lastKey = useRef(resetKey);
+  if (lastKey.current !== resetKey) {
+    lastKey.current = resetKey;
+    // Don't show the previous source's diagram while (or if) the new one fails to render.
+    setState({ result: null, error: null, pending: true });
+  }
 
   useEffect(() => {
     const id = ++seq.current;

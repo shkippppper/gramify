@@ -33,11 +33,11 @@ interface Props {
   /** Override what the preview shows (e.g. a version being previewed). */
   previewOverride?: { code: string; config: string } | null;
   confirmSampleReplace?: boolean;
-  fullscreenHref?: string;
+  fullscreenHref?: string | (() => string);
   previewRef?: Ref<PreviewHandle>;
   onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor | null) => void;
   onPointer?: (p: { x: number; y: number } | null) => void;
-  onUserView?: (view: SharedView) => void;
+  onUserView?: (view: SharedView, byUser: boolean) => void;
   overlay?: (api: PreviewApi) => ReactNode;
   editorOverlay?: ReactNode;
 }
@@ -60,7 +60,13 @@ export function EditorWorkspace(props: Props) {
   const liveConfig = useYText(session.config);
   const code = previewOverride?.code ?? liveCode;
   const config = previewOverride?.config ?? liveConfig;
-  const { result, error, pending } = useDiagramRender(code, config, dark);
+  const { result, error, pending } = useDiagramRender(
+    code,
+    config,
+    dark,
+    previewOverride ? 'preview' : 'live',
+  );
+  // Markers belong to the live code; a previewed version's error is shown in the bar only.
   const liveError = previewOverride ? null : error;
 
   const [tab, setTab] = useState<EditorTab>('code');
@@ -139,7 +145,11 @@ export function EditorWorkspace(props: Props) {
   );
 
   const loadSample = (sampleCode: string) => {
+    const before = session.code.toString();
     replaceText(session.code, sampleCode, 'sample');
+    toast.success('Sample loaded', {
+      action: { label: 'Undo', onClick: () => replaceText(session.code, before, 'sample') },
+    });
     setTab('code');
   };
 
@@ -191,7 +201,15 @@ export function EditorWorkspace(props: Props) {
         />
         {props.editorOverlay}
       </div>
-      <ErrorBar error={liveError} />
+      <ErrorBar
+        error={
+          previewOverride
+            ? error
+              ? { ...error, message: `This version has an error:\n${error.message}` }
+              : null
+            : liveError
+        }
+      />
       <div className="max-h-[45%] shrink-0 overflow-auto">
         {!session.readOnly && (
           <Collapsible
@@ -306,7 +324,8 @@ export function EditorWorkspace(props: Props) {
       >
         <p className="text-sm text-muted">
           Load <strong className="text-fg">{pendingSample?.title}</strong>? This replaces the code
-          for everyone in this diagram. You can get the old version back from History.
+          for everyone in this diagram. You can undo it right after (Undo in the notification, or
+          Ctrl+Z in the editor).
         </p>
       </Dialog>
     </div>

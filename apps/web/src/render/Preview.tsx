@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -12,6 +13,7 @@ import {
 } from 'react';
 import svgPanZoom from 'svg-pan-zoom';
 import { IconButton } from '../components/ui';
+import { throttleTrailing } from '../lib/throttle';
 import { MERMAID_VERSION } from './mermaid';
 import { sketchSvg } from './rough';
 
@@ -51,9 +53,11 @@ interface Props {
   grid: boolean;
   onToggleRough?: () => void;
   onToggleGrid?: () => void;
-  fullscreenHref?: string;
+  /** Full-screen link; a function is evaluated on click (so it can include the latest edits). */
+  fullscreenHref?: string | (() => string);
   /** Called on every user-initiated pan/zoom. */
-  onUserView?: (view: SharedView) => void;
+  /** Any view change; `byUser` is false for fits/resets (shared, but don't stop following). */
+  onUserView?: (view: SharedView, byUser: boolean) => void;
   onPointer?: (p: { x: number; y: number } | null) => void;
   overlay?: (api: PreviewApi) => ReactNode;
   /** Click (not drag) on a diagram element: used to jump to its code. */
@@ -90,6 +94,7 @@ export function Preview({
   const [version, setVersion] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const bump = useCallback(() => setVersion((v) => v + 1), []);
+  const getViewRef = useRef<(() => SharedView | null) | null>(null);
   const onUserViewRef = useRef(onUserView);
   onUserViewRef.current = onUserView;
 
@@ -104,6 +109,11 @@ export function Preview({
     programmatic.current = false;
     dirtyRef.current = false;
     bump();
+    // Share the fitted view too, so followers mirror a "Reset view".
+    queueMicrotask(() => {
+      const v = getViewRef.current?.();
+      if (v) onUserViewRef.current?.(v, false);
+    });
   }, [bump]);
 
   const getView = useCallback((): SharedView | null => {
@@ -141,6 +151,7 @@ export function Preview({
     [bump],
   );
 
+  getViewRef.current = getView;
   useImperativeHandle(ref, () => ({ getExportSvg: () => exportRef.current, getView, setView }), [
     getView,
     setView,
@@ -151,6 +162,7 @@ export function Preview({
     const host = hostRef.current;
     if (!host || !svg) return;
     let cancelled = false;
+    if (!rough) setRenderError(null);
     (async () => {
       const prev = pzRef.current;
       const keep = prev && dirtyRef.current ? getView() : null;
@@ -202,7 +214,7 @@ export function Preview({
           if (!programmatic.current) {
             dirtyRef.current = true;
             const v = getView();
-            if (v) onUserViewRef.current?.(v);
+            if (v) onUserViewRef.current?.(v, true);
           }
           bump();
         },
@@ -210,7 +222,7 @@ export function Preview({
           if (!programmatic.current) {
             dirtyRef.current = true;
             const v = getView();
-            if (v) onUserViewRef.current?.(v);
+            if (v) onUserViewRef.current?.(v, true);
           }
           bump();
         },
@@ -300,7 +312,11 @@ export function Preview({
 
   const onPointerRef = useRef(onPointer);
   onPointerRef.current = onPointer;
-  const lastSent = useRef(0);
+  // ~30 Hz, always delivering the final position.
+  const sendPointer = useMemo(
+    () => throttleTrailing((p: { x: number; y: number } | null) => onPointerRef.current?.(p), 33),
+    [],
+  );
   const downAt = useRef<{ x: number; y: number } | null>(null);
   const onElementClickRef = useRef(onElementClick);
   onElementClickRef.current = onElementClick;
@@ -325,12 +341,12 @@ export function Preview({
       data-testid="preview"
       onPointerMove={(e) => {
         if (!onPointerRef.current) return;
-        const now = performance.now();
-        if (now - lastSent.current < 33) return; // ~30Hz
-        lastSent.current = now;
-        onPointerRef.current(toNormalized(e.clientX, e.clientY));
+        sendPointer(toNormalized(e.clientX, e.clientY));
       }}
-      onPointerLeave={() => onPointerRef.current?.(null)}
+      onPointerLeave={() => {
+        sendPointer.cancel();
+        onPointerRef.current?.(null);
+      }}
       onPointerDown={(e) => {
         downAt.current = { x: e.clientX, y: e.clientY };
       }}
@@ -387,7 +403,10 @@ export function Preview({
             </IconButton>
             {fullscreenHref && (
               <a
-                href={fullscreenHref}
+                href={typeof fullscreenHref === 'function' ? '#' : fullscreenHref}
+                onClick={(e) => {
+                  if (typeof fullscreenHref === 'function') e.currentTarget.href = fullscreenHref();
+                }}
                 target="_blank"
                 rel="noreferrer"
                 title="Full screen"

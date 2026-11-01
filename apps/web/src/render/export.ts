@@ -42,7 +42,13 @@ function svgDims(markup: string) {
 
 export async function svgToPng(
   svgMarkup: string,
-  opts: { mode: SizeMode; size: number; background: string | null },
+  opts: {
+    mode: SizeMode;
+    size: number;
+    background: string | null;
+    /** Called when the image had to be scaled down to stay within browser limits. */
+    onDownscale?: (width: number, height: number) => void;
+  },
 ): Promise<Blob> {
   const markup = standaloneSvg(svgMarkup, null);
   const { width, height } = svgDims(markup);
@@ -57,6 +63,15 @@ export async function svgToPng(
   } else {
     w = width * 2;
     h = height * 2;
+  }
+  // Browsers can't encode huge canvases (~16k px per side, ~2^27 px area): scale down to fit.
+  const MAX_SIDE = 16_384;
+  const MAX_AREA = 2 ** 27;
+  const scale = Math.min(1, MAX_SIDE / w, MAX_SIDE / h, Math.sqrt(MAX_AREA / (w * h)));
+  if (scale < 1) {
+    w *= scale;
+    h *= scale;
+    opts.onDownscale?.(Math.round(w), Math.round(h));
   }
   w = Math.max(1, Math.round(w));
   h = Math.max(1, Math.round(h));

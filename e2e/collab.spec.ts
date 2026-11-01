@@ -159,3 +159,36 @@ test('boards are private until shared; viewers are read-only', async ({ browser 
   expect(await editorText(ada)).not.toContain('SHOULD NOT APPEAR');
   expect(await editorText(vic)).not.toContain('SHOULD NOT APPEAR');
 });
+
+test('changing a member’s role mid-session keeps everyone in sync', async ({ browser }) => {
+  const ada = await userPage(browser, 'Ada Lovelace');
+  const grace = await userPage(browser, 'Grace Hopper');
+  await ada.getByRole('button', { name: 'New diagram' }).first().click();
+  await ada.waitForURL(/\/d\//);
+  await shareWith(ada, grace, 'Can edit');
+  await grace.goto(ada.url());
+  await expect(grace.locator('[data-testid=diagram] svg')).toBeVisible();
+
+  const setRole = async (label: 'Can edit' | 'Can view') => {
+    await ada.getByRole('button', { name: /Share/ }).click();
+    await ada.getByRole('menuitem', { name: 'People with access…' }).click();
+    await ada
+      .getByRole('dialog')
+      .getByLabel(/^Access for /)
+      .selectOption({ label });
+    await ada.waitForTimeout(400);
+    await ada.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  };
+
+  // Downgrade: Grace becomes read-only but keeps receiving live edits.
+  await setRole('Can view');
+  await expect(grace.getByTestId('view-only')).toBeVisible({ timeout: 15_000 });
+  await typeAtEnd(ada, '\n    F --> V[After downgrade]');
+  await expectEditorToContain(grace, 'V[After downgrade]');
+
+  // Upgrade again: Grace's edits reach Ada.
+  await setRole('Can edit');
+  await expect(grace.getByTestId('view-only')).toHaveCount(0, { timeout: 15_000 });
+  await typeAtEnd(grace, '\n    V --> W[Grace again]');
+  await expectEditorToContain(ada, 'W[Grace again]');
+});
