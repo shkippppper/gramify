@@ -22,3 +22,17 @@ describe('import', () => {
     expect(parseFile('flow.mmd', 'pie').title).toBe('flow');
   });
 });
+
+describe('import helpers', () => {
+  it('derives titles', async () => {
+    const { deriveTitle, importErrorMessage } = await import('./import');
+    expect(deriveTitle('gantt\n  title Launch plan\n')).toBe('Launch plan');
+    expect(deriveTitle('pie title Pets\n "a": 1')).toBe('Pets');
+    expect(deriveTitle('sequenceDiagram\n A->>B: hi')).toBe('Imported sequence diagram');
+    expect(deriveTitle('weird')).toBe('Imported diagram');
+    expect(importErrorMessage('incorrect header check')).toMatch(/valid mermaid.live link/);
+    expect(importErrorMessage(new Error('No ```mermaid code block found'))).toMatch(
+      /No ```mermaid/,
+    );
+  });
+});

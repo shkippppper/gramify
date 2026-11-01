@@ -1,31 +1,35 @@
 import { useMutation } from '@tanstack/react-query';
-import type { DiagramSummary, Folder } from '@gramify/shared';
+import { BRAND, type DiagramSummary, type Folder } from '@gramify/shared';
+import clsx from 'clsx';
 import {
   ChevronDown,
+  ChevronRight,
   FilePlus2,
+  Folder as FolderIcon,
   LayoutGrid,
   Link2,
   List,
   Menu as MenuIcon,
+  RotateCcw,
   Search,
   Shapes,
   Upload,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { ThemeToggle, TopBar } from '../components/TopBar';
 import { ShareDialog } from '../components/ShareDialog';
+import { ThemeToggle, TopBar } from '../components/TopBar';
 import { UserMenu } from '../components/UserMenu';
 import { Button, Dialog, Input, Menu, Spinner } from '../components/ui';
 import { SAMPLE_FAMILIES } from '../editor/samples';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
-import { Sidebar } from '../library/Sidebar';
+import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import { Thumbnail } from '../library/Thumbnail';
 import { useDiagrams, useFolders, useLibraryMutation } from '../library/useLibrary';
 import { api, type LibraryView, type SortKey } from '../lib/api';
-import { parseFile, parseImport } from '../lib/import';
 import { useMe } from '../lib/auth';
+import { deriveTitle, importErrorMessage, parseFile, parseImport } from '../lib/import';
 import { useLocalState } from '../lib/useLocalState';
 
 const VIEW_TITLES: Record<LibraryView, string> = {
@@ -36,42 +40,119 @@ const VIEW_TITLES: Record<LibraryView, string> = {
   starred: 'Starred',
   trash: 'Trash',
 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function folderPath(folders: Folder[], id: string | null): string {
+/** Folder chain from the root down to `id`. */
+function folderChain(folders: Folder[], id: string | null): Folder[] {
   const byId = new Map(folders.map((f) => [f.id, f]));
-  const parts: string[] = [];
-  for (
-    let cur = id ? byId.get(id) : undefined, i = 0;
-    cur && i < 20;
-    cur = cur.parentId ? byId.get(cur.parentId) : undefined, i++
-  ) {
-    parts.unshift(cur.name);
+  const chain: Folder[] = [];
+  for (let cur = id ? byId.get(id) : undefined, i = 0; cur && i < 20; i++) {
+    chain.unshift(cur);
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
   }
-  return parts.join(' / ');
+  return chain;
+}
+const folderPath = (folders: Folder[], id: string | null) =>
+  folderChain(folders, id)
+    .map((f) => f.name)
+    .join(' / ');
+
+/** A folder tile in the main area: opens the folder, and accepts dropped boards. */
+function FolderTile({
+  folder,
+  onOpen,
+  onDrop,
+}: {
+  folder: Folder;
+  onOpen: () => void;
+  onDrop: (diagramId: string) => void;
+}) {
+  const [over, setOver] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(DND_TYPE)) return;
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        const id = e.dataTransfer.getData(DND_TYPE);
+        if (id) {
+          e.preventDefault();
+          onDrop(id);
+        }
+      }}
+      className={clsx(
+        'flex min-w-0 items-center gap-2 rounded-lg border bg-surface px-3 py-2 text-left text-sm hover:border-accent/60',
+        over ? 'border-accent ring-2 ring-accent/30' : 'border-border',
+      )}
+      title={folder.name}
+    >
+      <FolderIcon size={16} className="shrink-0 text-muted" />
+      <span className="truncate">{folder.name}</span>
+    </button>
+  );
 }
 
 export function LibraryPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const view = (params.get('view') as LibraryView | null) ?? 'all';
-  const folderId = params.get('folder');
+  const rawView = params.get('view');
+  const view: LibraryView = rawView && rawView in VIEW_TITLES ? (rawView as LibraryView) : 'all';
+  const rawFolder = params.get('folder');
   const [q, setQ] = useState(params.get('q') ?? '');
+  // Search after typing pauses, and keep it in the URL so reload/back/share keep it.
+  const deferredQ = useDeferredValue(q);
+  const [debouncedQ, setDebouncedQ] = useState(q);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(deferredQ.trim()), 250);
+    return () => clearTimeout(t);
+  }, [deferredQ]);
+  useEffect(() => {
+    const next = new URLSearchParams(params);
+    if (debouncedQ) next.set('q', debouncedQ);
+    else next.delete('q');
+    if (next.toString() !== params.toString()) setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
+
   const [sort, setSort] = useLocalState<SortKey>('tp-sort', 'updated');
   const [layout, setLayout] = useLocalState<'grid' | 'list'>('tp-layout', 'grid');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const folders = useFolders();
-  const list = useDiagrams({ view, folderId, q: q.trim(), sort });
   const folderList = folders.data ?? [];
   const folderById = useMemo(() => new Map(folderList.map((f) => [f.id, f])), [folderList]);
+  // Ignore folder ids that are malformed or not ours (e.g. an old link) instead of erroring.
+  const folderId =
+    view === 'mine' &&
+    rawFolder &&
+    UUID.test(rawFolder) &&
+    (folders.isPending || folderById.has(rawFolder))
+      ? rawFolder
+      : null;
+  const list = useDiagrams({ view, folderId, q: debouncedQ, sort });
 
   const select = (v: LibraryView, f: string | null) => {
     const next = new URLSearchParams();
     if (v !== 'all') next.set('view', v);
     if (f) next.set('folder', f);
+    if (debouncedQ) next.set('q', debouncedQ);
     setParams(next);
     setSidebarOpen(false);
   };
+
+  // Mobile drawer: Escape closes it.
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSidebarOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
 
   // ---- dialogs ----
   const [renaming, setRenaming] = useState<DiagramSummary | null>(null);
@@ -80,8 +161,10 @@ export function LibraryPage() {
   const [moveTarget, setMoveTarget] = useState<string>('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
   const [samplesOpen, setSamplesOpen] = useState(false);
   const [deleting, setDeleting] = useState<DiagramSummary | null>(null);
+  const [leaving, setLeaving] = useState<DiagramSummary | null>(null);
   const [sharing, setSharing] = useState<DiagramSummary | null>(null);
   const me = useMe();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -101,9 +184,9 @@ export function LibraryPage() {
       api.updateDiagram(p.id, { folderId: p.folderId }),
     'Moved',
   );
-  const duplicate = useLibraryMutation((id: string) => api.duplicateDiagram(id), 'Duplicated');
+  const duplicate = useLibraryMutation((id: string) => api.duplicateDiagram(id));
   const star = useLibraryMutation((d: DiagramSummary) => api.star(d.id, !d.starred));
-  const trash = useLibraryMutation((id: string) => api.trashDiagram(id), 'Moved to trash');
+  const trash = useLibraryMutation((id: string) => api.trashDiagram(id));
   const restore = useLibraryMutation((id: string) => api.restoreDiagram(id), 'Restored');
   const leave = useLibraryMutation(
     (id: string) => api.removeMember(id, me.data!.email),
@@ -120,19 +203,55 @@ export function LibraryPage() {
       setMoveTarget(d.folderId ?? '');
       setMoving(d);
     },
-    duplicate: (d) => duplicate.mutate(d.id),
+    duplicate: (d) =>
+      duplicate.mutate(d.id, {
+        onSuccess: (copy) =>
+          toast.success('Duplicated to My boards', {
+            action: { label: 'Open', onClick: () => navigate(`/d/${(copy as DiagramSummary).id}`) },
+          }),
+      }),
     star: (d) => star.mutate(d),
-    trash: (d) => trash.mutate(d.id),
+    trash: (d) =>
+      trash.mutate(d.id, {
+        onSuccess: () =>
+          toast.success('Moved to trash', {
+            action: { label: 'Undo', onClick: () => restore.mutate(d.id) },
+          }),
+      }),
     restore: (d) => restore.mutate(d.id),
     deleteForever: (d) => setDeleting(d),
     share: (d) => setSharing(d),
-    leave: (d) => leave.mutate(d.id),
+    leave: (d) => setLeaving(d),
   };
 
-  const heading =
-    view === 'mine' && folderId ? folderPath(folderList, folderId) || 'Folder' : VIEW_TITLES[view];
+  const chain = view === 'mine' ? folderChain(folderList, folderId) : [];
+  const heading = VIEW_TITLES[view];
+  const pageTitle = chain.length ? chain[chain.length - 1]!.name : heading;
+  useEffect(() => {
+    document.title = `${pageTitle} · ${BRAND.name}`;
+  }, [pageTitle]);
+
+  const subfolders =
+    view === 'mine' && !debouncedQ
+      ? folderList.filter((f) => (f.parentId ?? null) === folderId)
+      : [];
   const diagrams = list.data?.diagrams ?? [];
   const presence = list.data?.presence ?? {};
+  const cardFolder = (d: DiagramSummary) =>
+    d.folderId && d.folderId !== folderId ? folderById.get(d.folderId) : undefined;
+
+  const doImport = () => {
+    try {
+      const parsed = parseImport(importText);
+      if (!parsed.code.trim()) throw new Error('There’s no diagram code in that.');
+      create.mutate({ code: parsed.code, config: parsed.config, title: deriveTitle(parsed.code) });
+      setImportOpen(false);
+      setImportText('');
+      setImportError(null);
+    } catch (e) {
+      setImportError(importErrorMessage(e));
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -141,7 +260,8 @@ export function LibraryPage() {
           <button
             type="button"
             className="rounded p-1 text-muted hover:text-fg md:hidden"
-            aria-label="Toggle sidebar"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((o) => !o)}
           >
             <MenuIcon size={18} />
@@ -157,7 +277,14 @@ export function LibraryPage() {
           </>
         }
       />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 top-12 z-20 bg-black/30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden
+          />
+        )}
         <aside
           className={`${sidebarOpen ? 'fixed inset-y-12 left-0 z-30 shadow-xl' : 'hidden'} w-64 shrink-0 border-r border-border bg-surface md:static md:block`}
         >
@@ -166,32 +293,68 @@ export function LibraryPage() {
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl p-4 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <h1 className="mr-auto truncate text-lg font-semibold">{heading}</h1>
-              <div className="relative">
+              <h1 className="min-w-0 flex-1 basis-48 text-lg font-semibold">
+                {chain.length ? (
+                  <nav aria-label="Folder path" className="flex min-w-0 items-center gap-1">
+                    <button
+                      type="button"
+                      className="shrink-0 text-muted hover:text-fg"
+                      onClick={() => select('mine', null)}
+                    >
+                      {heading}
+                    </button>
+                    {chain.map((f, i) => (
+                      <span key={f.id} className="flex min-w-0 items-center gap-1">
+                        <ChevronRight size={16} className="shrink-0 text-muted" />
+                        {i === chain.length - 1 ? (
+                          <span className="truncate" aria-current="page" title={f.name}>
+                            {f.name}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="truncate text-muted hover:text-fg"
+                            onClick={() => select('mine', f.id)}
+                            title={f.name}
+                          >
+                            {f.name}
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </nav>
+                ) : (
+                  <span className="block truncate">{heading}</span>
+                )}
+              </h1>
+              <div className="relative min-w-40 flex-1 sm:flex-none">
                 <Search
                   size={14}
                   className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
                 />
                 <Input
+                  type="search"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search titles and code"
-                  className="w-56 pl-8"
+                  className="w-full pl-8 sm:w-56"
                   aria-label="Search diagrams"
                 />
               </div>
-              {view !== 'recent' && (
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="h-8 rounded-md border border-border bg-surface px-2 text-sm"
-                  aria-label="Sort by"
-                >
-                  <option value="updated">Last modified</option>
-                  <option value="created">Created</option>
-                  <option value="title">Title</option>
-                </select>
-              )}
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                disabled={view === 'recent'}
+                title={
+                  view === 'recent' ? 'Recent is ordered by when you opened each board' : undefined
+                }
+                className="h-8 rounded-md border border-border bg-surface px-2 text-sm disabled:opacity-50"
+                aria-label="Sort by"
+              >
+                <option value="updated">Last modified</option>
+                <option value="created">Created</option>
+                <option value="title">Title</option>
+              </select>
               <div className="flex rounded-md border border-border">
                 <button
                   type="button"
@@ -242,7 +405,10 @@ export function LibraryPage() {
                       {
                         label: 'Import mermaid.live link or code…',
                         icon: <Link2 size={14} />,
-                        onSelect: () => setImportOpen(true),
+                        onSelect: () => {
+                          setImportError(null);
+                          setImportOpen(true);
+                        },
                       },
                       {
                         label: 'Upload .mmd / .md file…',
@@ -266,39 +432,71 @@ export function LibraryPage() {
                     const { code, title } = parseFile(file.name, await file.text());
                     create.mutate({ code, title });
                   } catch (err) {
-                    toast.error((err as Error).message);
+                    toast.error(importErrorMessage(err));
                   }
                 }}
               />
             </div>
+
+            {view === 'trash' && (
+              <p className="mb-4 text-xs text-muted">
+                Only boards you own appear here. Restore them, or delete them forever (this also
+                deletes their history).
+              </p>
+            )}
+
+            {subfolders.length > 0 && (
+              <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                {subfolders.map((f) => (
+                  <FolderTile
+                    key={f.id}
+                    folder={f}
+                    onOpen={() => select('mine', f.id)}
+                    onDrop={(id) => move.mutate({ id, folderId: f.id })}
+                  />
+                ))}
+              </div>
+            )}
 
             {list.isPending ? (
               <div className="grid place-items-center py-24 text-muted">
                 <Spinner />
               </div>
             ) : list.isError ? (
-              <p className="py-24 text-center text-sm text-danger">
-                {(list.error as Error).message}
-              </p>
-            ) : diagrams.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-24 text-center">
-                <p className="text-sm text-muted">
-                  {q
-                    ? 'No diagrams match your search.'
+                <p className="text-sm text-danger">
+                  Couldn’t load boards: {(list.error as Error).message}
+                </p>
+                <Button onClick={() => void list.refetch()}>
+                  <RotateCcw size={14} /> Retry
+                </Button>
+              </div>
+            ) : diagrams.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-20 text-center">
+                <p className="max-w-md text-sm text-muted">
+                  {debouncedQ
+                    ? `No boards match “${debouncedQ}”.`
                     : view === 'trash'
                       ? 'Trash is empty.'
                       : view === 'starred'
-                        ? 'Star diagrams to find them here.'
+                        ? 'Star boards to find them here quickly.'
                         : view === 'recent'
-                          ? 'Diagrams you open show up here.'
+                          ? 'Boards you open show up here.'
                           : view === 'shared'
                             ? 'Nothing shared with you yet. When a board owner adds your email, the board shows up here.'
-                            : 'No diagrams here yet. Boards you create are private until you share them.'}
+                            : chain.length
+                              ? 'This folder is empty. Drag boards onto it in the sidebar, or create one here.'
+                              : 'No boards yet. Boards you create are private until you share them with your team.'}
                 </p>
-                {(view === 'all' || view === 'mine') && !q && (
-                  <Button variant="primary" onClick={() => create.mutate({})}>
-                    <FilePlus2 size={15} /> Create your first diagram
-                  </Button>
+                {(view === 'all' || view === 'mine') && !debouncedQ && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button variant="primary" onClick={() => create.mutate({})}>
+                      <FilePlus2 size={15} /> New diagram
+                    </Button>
+                    <Button onClick={() => setSamplesOpen(true)}>
+                      <Shapes size={15} /> Start from a sample
+                    </Button>
+                  </div>
                 )}
               </div>
             ) : layout === 'grid' ? (
@@ -307,7 +505,7 @@ export function LibraryPage() {
                   <DiagramCard
                     key={d.id}
                     d={d}
-                    folder={d.folderId ? folderById.get(d.folderId) : undefined}
+                    folder={cardFolder(d)}
                     present={presence[d.id] ?? []}
                     actions={actions}
                     layout="grid"
@@ -320,7 +518,7 @@ export function LibraryPage() {
                   <DiagramCard
                     key={d.id}
                     d={d}
-                    folder={d.folderId ? folderById.get(d.folderId) : undefined}
+                    folder={cardFolder(d)}
                     present={presence[d.id] ?? []}
                     actions={actions}
                     layout="list"
@@ -406,6 +604,9 @@ export function LibraryPage() {
               </option>
             ))}
         </select>
+        {folderList.length === 0 && (
+          <p className="mt-2 text-xs text-muted">Create folders with the + next to “My folders”.</p>
+        )}
       </Dialog>
 
       <Dialog
@@ -416,24 +617,7 @@ export function LibraryPage() {
         footer={
           <>
             <Button onClick={() => setImportOpen(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              disabled={!importText.trim()}
-              onClick={() => {
-                try {
-                  const parsed = parseImport(importText);
-                  create.mutate({
-                    code: parsed.code,
-                    config: parsed.config,
-                    title: 'Imported diagram',
-                  });
-                  setImportOpen(false);
-                  setImportText('');
-                } catch (e) {
-                  toast.error(`Could not import: ${(e as Error).message}`);
-                }
-              }}
-            >
+            <Button variant="primary" disabled={!importText.trim()} onClick={doImport}>
               Import
             </Button>
           </>
@@ -442,12 +626,25 @@ export function LibraryPage() {
         <p className="mb-2 text-sm text-muted">Paste a mermaid.live link or Mermaid code.</p>
         <textarea
           value={importText}
-          onChange={(e) => setImportText(e.target.value)}
+          onChange={(e) => {
+            setImportText(e.target.value);
+            setImportError(null);
+          }}
           rows={8}
-          className="w-full rounded-md border border-border bg-surface p-2 font-mono text-xs outline-none focus:border-accent"
+          className={clsx(
+            'w-full rounded-md border bg-surface p-2 font-mono text-xs outline-none focus:border-accent',
+            importError ? 'border-danger' : 'border-border',
+          )}
           placeholder="https://mermaid.live/edit#pako:…"
           aria-label="Link or code"
+          aria-invalid={!!importError}
+          aria-describedby={importError ? 'import-error' : undefined}
         />
+        {importError && (
+          <p id="import-error" role="alert" className="mt-2 text-xs text-danger">
+            {importError}
+          </p>
+        )}
       </Dialog>
 
       <Dialog
@@ -461,17 +658,15 @@ export function LibraryPage() {
             <button
               key={fam.name}
               type="button"
-              className="flex flex-col overflow-hidden rounded-lg border border-border text-left hover:border-accent"
+              className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left hover:border-accent"
               onClick={() => {
                 setSamplesOpen(false);
                 create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
               }}
             >
-              <Thumbnail
-                code={fam.examples[0]!.code}
-                config="{}"
-                className="aspect-[4/3] bg-bg p-2"
-              />
+              <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-white">
+                <Thumbnail code={fam.examples[0]!.code} config="{}" className="absolute inset-2" />
+              </span>
               <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
                 {fam.name}
               </span>
@@ -501,7 +696,32 @@ export function LibraryPage() {
       >
         <p className="text-sm text-muted">
           <strong className="text-fg">{deleting?.title}</strong> and its version history will be
-          permanently deleted.
+          permanently deleted. This can’t be undone.
+        </p>
+      </Dialog>
+
+      <Dialog
+        open={!!leaving}
+        onClose={() => setLeaving(null)}
+        title="Leave this board?"
+        footer={
+          <>
+            <Button onClick={() => setLeaving(null)}>Cancel</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (leaving) leave.mutate(leaving.id);
+                setLeaving(null);
+              }}
+            >
+              Leave board
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          You’ll lose access to <strong className="text-fg">{leaving?.title}</strong>. Only{' '}
+          {leaving?.owner?.name ?? 'the owner'} can add you back.
         </p>
       </Dialog>
     </div>

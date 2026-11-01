@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DiagramRole, DiagramSummary, MemberRole } from '@gramify/shared';
 import { colorForId } from '@gramify/shared';
@@ -39,6 +40,7 @@ export function ShareDialog({
   });
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<MemberRole>('editor');
+  const [formError, setFormError] = useState<string | null>(null);
   const isOwner = diagram.role === 'owner';
 
   const refresh = () => {
@@ -52,13 +54,19 @@ export function ShareDialog({
       qc.setQueryData(key, list);
       refresh();
       setEmail('');
+      setFormError(null);
       toast.success(`${p.email} can now ${p.role === 'editor' ? 'edit' : 'view'} this board`);
     },
-    onError: (e) => toast.error((e as Error).message),
+    onError: (e) => setFormError((e as Error).message),
   });
   const remove = useMutation({
-    mutationFn: (e: string) => api.removeMember(diagram.id, e),
-    onSuccess: () => refresh(),
+    mutationFn: (m: { email: string; role: MemberRole }) => api.removeMember(diagram.id, m.email),
+    onSuccess: (_, m) => {
+      refresh();
+      toast.success(`Removed ${m.email}`, {
+        action: { label: 'Undo', onClick: () => add.mutate({ email: m.email, role: m.role }) },
+      });
+    },
     onError: (e) => toast.error((e as Error).message),
   });
   const leave = useMutation({
@@ -74,7 +82,7 @@ export function ShareDialog({
   const submit = () => {
     const v = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-      toast.error('Enter a valid email address');
+      setFormError('Enter a valid email address.');
       return;
     }
     add.mutate({ email: v, role });
@@ -83,10 +91,15 @@ export function ShareDialog({
   const link = `${location.origin}/d/${diagram.id}`;
 
   return (
-    <Dialog open={open} onClose={onClose} title={`Share “${diagram.title}”`} width="max-w-lg">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={isOwner ? `Share “${diagram.title}”` : 'People with access'}
+      width="max-w-lg"
+    >
       {isOwner ? (
         <form
-          className="mb-4 flex gap-2"
+          className="mb-4 flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
@@ -96,9 +109,14 @@ export function ShareDialog({
             type="email"
             placeholder="Add people by email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="min-w-0 flex-1"
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setFormError(null);
+            }}
+            className={clsx('min-w-0 flex-1', formError && 'border-danger')}
             aria-label="Email address"
+            aria-invalid={!!formError}
+            aria-describedby={formError ? 'share-error' : undefined}
           />
           <select
             value={role}
@@ -112,6 +130,11 @@ export function ShareDialog({
           <Button type="submit" variant="primary" disabled={!email.trim() || add.isPending}>
             {add.isPending ? <Spinner /> : <UserPlus size={14} />} Add
           </Button>
+          {formError && (
+            <p id="share-error" role="alert" className="w-full text-xs text-danger">
+              {formError}
+            </p>
+          )}
         </form>
       ) : (
         <p className="mb-4 rounded-md bg-surface-2 px-3 py-2 text-xs text-muted">
@@ -164,13 +187,17 @@ export function ShareDialog({
                   <div className="truncate text-sm">
                     {m.user?.name ?? m.email} {isMe && <span className="text-muted">(you)</span>}
                   </div>
-                  <div
-                    className="truncate text-xs text-muted"
-                    title={m.user ? m.email : `${m.email} hasn’t signed in yet`}
-                  >
-                    {m.user
-                      ? m.email
-                      : 'Hasn’t signed in yet: the board appears for them once they do'}
+                  <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+                    {m.user ? (
+                      <span className="truncate">{m.email}</span>
+                    ) : (
+                      <span
+                        className="shrink-0 rounded bg-surface-2 px-1 py-px text-[10px] font-medium"
+                        title="They haven’t signed in yet. The board appears for them once they do."
+                      >
+                        Invite pending
+                      </span>
+                    )}
                   </div>
                 </div>
                 {isOwner ? (
@@ -189,7 +216,7 @@ export function ShareDialog({
                     <IconButton
                       label={`Remove ${m.email}`}
                       className="size-7"
-                      onClick={() => remove.mutate(m.email)}
+                      onClick={() => remove.mutate({ email: m.email, role: m.role })}
                     >
                       <X size={14} />
                     </IconButton>
@@ -216,8 +243,12 @@ export function ShareDialog({
           size="sm"
           variant="ghost"
           onClick={async () => {
-            await navigator.clipboard.writeText(link);
-            toast.success('Link copied. Only people with access can open it.');
+            try {
+              await navigator.clipboard.writeText(link);
+              toast.success('Link copied. Only people with access can open it.');
+            } catch {
+              toast.error(`Couldn’t copy automatically. The link is ${link}`);
+            }
           }}
         >
           <Link2 size={14} /> Copy link

@@ -9,6 +9,9 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
   const contact = config.data?.contactEmail;
   useEffect(() => {
     document.title = `${title} · ${BRAND.name}`;
+    return () => {
+      document.title = BRAND.name;
+    };
   }, [title]);
   return (
     <div className="min-h-full bg-bg">

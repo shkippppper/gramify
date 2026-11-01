@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTheme } from '../lib/theme';
 import { parseConfig, renderDiagram } from '../render/mermaid';
 
 const cache = new Map<string, string | null>();
@@ -14,8 +13,8 @@ export function Thumbnail({
   config: string;
   className?: string;
 }) {
-  const { dark } = useTheme();
-  const key = `${dark ? 'd' : 'l'}\u0000${config}\u0000${code}`;
+  // Thumbnails always use the light diagram theme on a white frame: readable in both UI themes.
+  const key = `${config}\u0000${code}`;
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [src, setSrc] = useState<string | null | undefined>(() => cache.get(key));
@@ -38,7 +37,7 @@ export function Thumbnail({
     }
     let cancelled = false;
     const cfg = parseConfig(config);
-    renderDiagram(code, cfg.ok ? cfg.config : {}, { dark }).then((res) => {
+    renderDiagram(code, cfg.ok ? cfg.config : {}, { dark: false }).then((res) => {
       const url = res.ok ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(res.svg)}` : null;
       cache.set(key, url);
       if (!cancelled) setSrc(url);
@@ -46,7 +45,7 @@ export function Thumbnail({
     return () => {
       cancelled = true;
     };
-  }, [visible, key, code, config, dark]);
+  }, [visible, key, code, config]);
 
   return (
     <div ref={ref} className={className}>

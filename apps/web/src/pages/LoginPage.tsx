@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { BRAND } from '@gramify/shared';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { BrandIcon } from '../components/BrandIcon';
 import { ThemeToggle } from '../components/TopBar';
@@ -35,6 +35,22 @@ function GoogleIcon() {
   );
 }
 
+/** Sign-in error codes (from the OAuth redirect) as readable sentences. */
+function loginErrorMessage(code: string | null): string | null {
+  if (!code) return null;
+  const messages: Record<string, string> = {
+    access_denied: 'Sign-in was cancelled.',
+    unable_to_get_user_info: 'Google didn’t share your account details. Please try again.',
+    account_not_linked: 'This email is already linked to a different sign-in method.',
+    state_mismatch: 'Your sign-in session expired. Please try again.',
+    please_restart_the_process: 'Your sign-in session expired. Please try again.',
+    internal_server_error: 'Something went wrong on our side. Please try again.',
+  };
+  return (
+    messages[code.toLowerCase()] ?? `Sign-in failed (${code.replace(/_/g, ' ')}). Please try again.`
+  );
+}
+
 export function LoginPage() {
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));
@@ -45,7 +61,10 @@ export function LoginPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(params.get('error'));
+  const [error, setError] = useState<string | null>(loginErrorMessage(params.get('error')));
+  useEffect(() => {
+    document.title = `Sign in · ${BRAND.name}`;
+  }, []);
 
   if (me.isPending || config.isPending) return <FullPageSpinner />;
   if (me.data) return <Navigate to={next} replace />;

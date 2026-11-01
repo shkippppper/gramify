@@ -75,14 +75,20 @@ function menuItems(d: DiagramSummary, a: CardActions): Array<MenuItem | 'separat
 
 function Present({ users }: { users: PublicUser[] }) {
   if (!users.length) return null;
+  const shown = users.slice(0, 3);
   return (
     <div
-      className="flex -space-x-1.5"
-      title={`Editing now: ${users.map((u) => u.name).join(', ')}`}
+      className="flex shrink-0 items-center -space-x-1"
+      title={`Here now: ${users.map((u) => u.name).join(', ')}`}
     >
-      {users.slice(0, 4).map((u) => (
-        <Avatar key={u.id} name={u.name} image={u.image} color={colorForId(u.id)} size={20} ring />
+      {shown.map((u) => (
+        <Avatar key={u.id} name={u.name} image={u.image} color={colorForId(u.id)} size={22} ring />
       ))}
+      {users.length > shown.length && (
+        <span className="grid size-[22px] place-items-center rounded-full bg-surface-2 text-[10px] font-semibold text-muted ring-2 ring-surface">
+          +{users.length - shown.length}
+        </span>
+      )}
     </div>
   );
 }
@@ -95,6 +101,7 @@ export function DiagramCard({
   layout,
 }: {
   d: DiagramSummary;
+  /** The board's folder, when it should be shown (not when already inside it). */
   folder: Folder | undefined;
   present: PublicUser[];
   actions: CardActions;
@@ -102,28 +109,43 @@ export function DiagramCard({
 }) {
   const href = d.deletedAt ? undefined : `/d/${d.id}`;
   const shared = d.role !== 'owner';
+  const first = (name: string | undefined) => name?.split(' ')[0];
+  const metaText = d.deletedAt
+    ? `Deleted ${timeAgo(d.deletedAt)}`
+    : [
+        shared ? `${first(d.owner?.name) ?? 'Someone'}’s board` : first(d.updatedBy?.name),
+        timeAgo(d.updatedAt),
+        !shared && folder ? folder.name : undefined,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+  const badge = d.deletedAt ? null : shared ? (
+    d.role === 'viewer' ? (
+      <span
+        className="shrink-0 rounded bg-surface-2 px-1 py-px text-[10px] font-medium text-muted"
+        title="You can view this board"
+      >
+        View only
+      </span>
+    ) : (
+      <Users size={12} className="shrink-0 text-muted" aria-label="Shared with you" />
+    )
+  ) : d.memberCount > 0 ? (
+    <span
+      className="flex shrink-0 items-center gap-0.5 text-muted"
+      title={`Shared with ${d.memberCount} ${d.memberCount === 1 ? 'person' : 'people'}`}
+    >
+      <Users size={12} /> {d.memberCount}
+    </span>
+  ) : null;
   const meta = (
-    <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted">
-      {shared ? (
-        <span
-          className="truncate"
-          title={`Shared with you by ${d.owner?.email ?? 'the owner'} · ${d.role === 'viewer' ? 'view only' : 'can edit'}`}
-        >
-          <Users size={11} className="inline" /> {d.owner?.name.split(' ')[0] ?? 'Shared'}
-          {d.role === 'viewer' ? ' · view' : ''} ·{' '}
-        </span>
-      ) : d.memberCount > 0 ? (
-        <span
-          className="flex items-center gap-0.5"
-          title={`Shared with ${d.memberCount} ${d.memberCount === 1 ? 'person' : 'people'}`}
-        >
-          <Users size={11} /> {d.memberCount} ·
-        </span>
-      ) : null}
-      <span className="truncate">
-        {d.updatedBy && !shared ? `${d.updatedBy.name.split(' ')[0]} · ` : ''}
-        {timeAgo(d.updatedAt)}
-        {folder ? ` · ${folder.name}` : ''}
+    <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+      {badge}
+      <span
+        className="min-w-0 truncate"
+        title={shared && d.owner ? `Owner: ${d.owner.name} (${d.owner.email})` : metaText}
+      >
+        {metaText}
       </span>
     </span>
   );
@@ -139,7 +161,7 @@ export function DiagramCard({
   );
   const star = !d.deletedAt && (
     <IconButton
-      label={d.starred ? 'Unstar' : 'Star'}
+      label={`${d.starred ? 'Unstar' : 'Star'} ${d.title}`}
       active={d.starred}
       className="size-7"
       onClick={() => actions.star(d)}
@@ -159,6 +181,20 @@ export function DiagramCard({
           },
         };
 
+  const title = href ? (
+    <Link
+      to={href}
+      className="min-w-0 truncate text-sm font-medium hover:text-accent"
+      title={d.title}
+    >
+      {d.title}
+    </Link>
+  ) : (
+    <span className="min-w-0 truncate text-sm font-medium" title={d.title}>
+      {d.title}
+    </span>
+  );
+
   if (layout === 'list') {
     return (
       <div
@@ -169,23 +205,20 @@ export function DiagramCard({
         <Thumbnail
           code={d.code}
           config={d.config}
-          className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-surface p-1"
+          className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-white p-1"
         />
-        {href ? (
-          <Link to={href} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-accent">
-            {d.title}
-          </Link>
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">{d.title}</span>
-        )}
+        <div className="flex min-w-0 flex-1">{title}</div>
         <Present users={present} />
-        <span className="hidden w-56 sm:flex">{meta}</span>
+        <span className="hidden w-60 min-w-0 sm:flex">{meta}</span>
         {star}
         {menu}
       </div>
     );
   }
 
+  // The frame is a fixed 4:3 box: min-h-0 + overflow-hidden stop tall diagrams from stretching it.
+  const frame =
+    'relative block aspect-[4/3] min-h-0 overflow-hidden border-b border-border bg-white p-3';
   return (
     <div
       className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow hover:shadow-md"
@@ -193,28 +226,17 @@ export function DiagramCard({
       data-testid="diagram-card"
     >
       {href ? (
-        <Link
-          to={href}
-          className="block aspect-[4/3] border-b border-border bg-bg p-3"
-          tabIndex={-1}
-          aria-hidden
-        >
-          <Thumbnail code={d.code} config={d.config} className="size-full" />
+        <Link to={href} className={frame} tabIndex={-1} aria-hidden>
+          <Thumbnail code={d.code} config={d.config} className="absolute inset-3" />
         </Link>
       ) : (
-        <div className="aspect-[4/3] border-b border-border bg-bg p-3 opacity-60">
-          <Thumbnail code={d.code} config={d.config} className="size-full" />
+        <div className={clsx(frame, 'opacity-60')}>
+          <Thumbnail code={d.code} config={d.config} className="absolute inset-3" />
         </div>
       )}
       <div className="flex items-center gap-2 px-3 py-2">
         <div className="flex min-w-0 flex-1 flex-col">
-          {href ? (
-            <Link to={href} className="truncate text-sm font-medium hover:text-accent">
-              {d.title}
-            </Link>
-          ) : (
-            <span className="truncate text-sm font-medium">{d.title}</span>
-          )}
+          {title}
           {meta}
         </div>
         <Present users={present} />

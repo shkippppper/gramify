@@ -36,9 +36,14 @@ function NavItem({
   onDropDiagram,
   depth = 0,
   trailing,
+  leading,
+  title,
 }: {
   active: boolean;
   icon: ReactNode;
+  /** Control placed before the main button (e.g. an expand toggle); a sibling, not nested. */
+  leading?: ReactNode;
+  title?: string;
   children: ReactNode;
   onClick: () => void;
   onDropDiagram?: (diagramId: string) => void;
@@ -69,9 +74,12 @@ function NavItem({
         }
       }}
     >
+      {leading}
       <button
         type="button"
         onClick={onClick}
+        aria-current={active ? 'page' : undefined}
+        title={title}
         className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-1 text-left"
       >
         {icon}
@@ -122,37 +130,37 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
         <NavItem
           depth={depth}
           active={view === 'mine' && folderId === f.id}
-          onClick={() => onSelect('mine', f.id)}
+          onClick={() => {
+            onSelect('mine', f.id);
+            if (kids.length) setExpanded((x) => ({ ...x, [f.id]: true }));
+          }}
           onDropDiagram={(id) => move.mutate({ id, folderId: f.id })}
-          icon={
-            <span className="flex items-center">
-              <span
-                role="button"
-                tabIndex={-1}
-                aria-label={open ? 'Collapse' : 'Expand'}
-                className={clsx(
-                  'grid size-4 place-items-center text-muted',
-                  !kids.length && 'invisible',
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded((x) => ({ ...x, [f.id]: !open }));
-                }}
-              >
-                <ChevronRight
-                  size={12}
-                  className={clsx('transition-transform', open && 'rotate-90')}
-                />
-              </span>
-              <FolderIcon size={15} className="text-muted" />
-            </span>
+          title={f.name}
+          leading={
+            <button
+              type="button"
+              aria-label={`${open ? 'Collapse' : 'Expand'} ${f.name}`}
+              aria-expanded={open}
+              tabIndex={kids.length ? 0 : -1}
+              className={clsx(
+                'grid size-5 shrink-0 place-items-center rounded text-muted hover:text-fg',
+                !kids.length && 'invisible',
+              )}
+              onClick={() => setExpanded((x) => ({ ...x, [f.id]: !open }))}
+            >
+              <ChevronRight
+                size={12}
+                className={clsx('transition-transform', open && 'rotate-90')}
+              />
+            </button>
           }
+          icon={<FolderIcon size={15} className="shrink-0 text-muted" />}
           trailing={
             <Menu
               trigger={(p) => (
                 <IconButton
                   label={`Folder actions for ${f.name}`}
-                  className="size-6 opacity-0 group-hover:opacity-100 aria-expanded:opacity-100"
+                  className="size-6 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
                   {...p}
                 >
                   <MoreHorizontal size={14} />

@@ -15,14 +15,12 @@ export function UserMenu() {
       )}
       items={[
         {
-          label: (
+          header: (
             <span className="flex flex-col">
               <span className="font-medium">{me.data.name}</span>
               <span className="text-xs text-muted">{me.data.email}</span>
             </span>
           ),
-          onSelect: () => {},
-          disabled: true,
         },
         'separator',
         { label: 'Sign out', icon: <LogOut size={14} />, onSelect: () => void signOut() },

@@ -1,3 +1,4 @@
+import { BRAND } from '@gramify/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   DiagramRole,
@@ -76,6 +77,9 @@ function TitleInput({ session, fallback }: { session: DiagramSession; fallback: 
   const [draft, setDraft] = useState<string | null>(null);
   useEffect(() => {
     document.title = `${title} · Gramify`;
+    return () => {
+      document.title = BRAND.name;
+    };
   }, [title]);
   const commit = () => {
     const v = draft?.trim();
