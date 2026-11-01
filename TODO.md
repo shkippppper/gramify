@@ -52,6 +52,12 @@ Each item says why it matters and roughly where the work goes.
 - [ ] Make click-to-code work for more diagram types: Git graph commits, Gantt sections, quadrant points, and
       sequence messages that repeat the same text.
 
+## Onboarding
+
+- [x] **First-run tour** with spotlights for the library and the editor, "Don't show this again", replay from the
+      account menu, and "What's new" for added steps (`apps/web/src/tour/`).
+- [ ] Short tour for the Playground and the history panel.
+
 ## Features (v2)
 
 - [ ] **Comments:** threaded comments on a board, with resolve, @mentions and email notifications.

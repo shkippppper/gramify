@@ -38,6 +38,7 @@ import { api, type LibraryView, type SortKey } from '../lib/api';
 import { useMe } from '../lib/auth';
 import { deriveTitle, importErrorMessage, parseFile, parseImport } from '../lib/import';
 import { useLocalState } from '../lib/useLocalState';
+import { TourHost } from '../tour/Tour';
 
 const VIEW_TITLES: Record<LibraryView, string> = {
   all: 'All boards',
@@ -291,6 +292,7 @@ export function LibraryPage() {
 
   return (
     <div className="flex h-full flex-col">
+      <TourHost tour="library" userId={me.data?.id} ready={!list.isLoading} />
       <TopBar
         left={
           <button
@@ -327,7 +329,7 @@ export function LibraryPage() {
           <Sidebar view={view} folderId={folderId} folders={folderList} onSelect={select} />
         </aside>
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">
+          <div key={`${view}:${folderId ?? ''}`} className="tp-page mx-auto max-w-7xl p-4 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <h1 className="min-w-0 flex-1 basis-48 text-lg font-semibold">
                 {chain.length ? (
@@ -363,7 +365,7 @@ export function LibraryPage() {
                   <span className="block truncate">{heading}</span>
                 )}
               </h1>
-              <div className="relative min-w-40 flex-1 sm:flex-none">
+              <div className="relative min-w-40 flex-1 sm:flex-none" data-tour="search">
                 <Search
                   size={14}
                   className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
@@ -412,7 +414,7 @@ export function LibraryPage() {
                 </button>
               </div>
               {view !== 'trash' && (
-                <div className="flex">
+                <div className="flex" data-tour="new-diagram">
                   <Button
                     variant="primary"
                     className="rounded-r-none"

@@ -204,14 +204,16 @@ export function EditorWorkspace(props: Props) {
   const editorPane = (
     <div className="flex h-full min-h-0 flex-col bg-surface">
       <div className="flex items-center justify-between gap-2 border-b border-border px-2 py-1.5">
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          items={[
-            { value: 'code', label: 'Code' },
-            { value: 'config', label: 'Config' },
-          ]}
-        />
+        <div data-tour="editor-tabs">
+          <Tabs
+            value={tab}
+            onChange={setTab}
+            items={[
+              { value: 'code', label: 'Code' },
+              { value: 'config', label: 'Config' },
+            ]}
+          />
+        </div>
         <div className="flex items-center gap-2">
           {session.readOnly && <span className="text-xs text-muted">Read-only</span>}
           <a
@@ -224,7 +226,7 @@ export function EditorWorkspace(props: Props) {
           </a>
         </div>
       </div>
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1" data-tour="editor">
         <CodeEditor
           session={session}
           tab={tab}
@@ -260,14 +262,20 @@ export function EditorWorkspace(props: Props) {
             />
           </Collapsible>
         )}
-        <Collapsible title="Actions" open={actionsOpen} onToggle={() => setActionsOpen((o) => !o)}>
-          <Actions
-            getSvg={() => innerPreviewRef.current?.getExportSvg() ?? null}
-            code={code}
-            config={config}
-            title={title}
-          />
-        </Collapsible>
+        <div data-tour="actions">
+          <Collapsible
+            title="Actions"
+            open={actionsOpen}
+            onToggle={() => setActionsOpen((o) => !o)}
+          >
+            <Actions
+              getSvg={() => innerPreviewRef.current?.getExportSvg() ?? null}
+              code={code}
+              config={config}
+              title={title}
+            />
+          </Collapsible>
+        </div>
       </div>
     </div>
   );

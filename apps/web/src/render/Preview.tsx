@@ -61,7 +61,7 @@ interface Props {
   onUserView?: (view: SharedView, byUser: boolean) => void;
   onPointer?: (p: { x: number; y: number } | null) => void;
   overlay?: (api: PreviewApi) => ReactNode;
-  /** Click (not drag) on a diagram element: used to jump to its code. */
+  /** Double-click (not drag) on a diagram element: used to jump to its code. */
   onElementClick?: (target: Element, svg: SVGSVGElement) => void;
   /** Outline the shapes defined/used on this line of `code` (code → diagram). */
   highlight?: { code: string; line: number } | null;
@@ -356,6 +356,7 @@ export function Preview({
         grid && 'tp-grid-bg',
       )}
       data-testid="preview"
+      data-tour="preview"
       onPointerMove={(e) => {
         if (!onPointerRef.current) return;
         sendPointer(toNormalized(e.clientX, e.clientY));
@@ -367,13 +368,13 @@ export function Preview({
       onPointerDown={(e) => {
         downAt.current = { x: e.clientX, y: e.clientY };
       }}
-      onClick={(e) => {
+      onDoubleClick={(e) => {
         const handler = onElementClickRef.current;
         const svgEl = svgElRef.current;
         const start = downAt.current;
         downAt.current = null;
         if (!handler || !svgEl || !start) return;
-        // A drag (pan) also ends in a click event; only treat near-stationary clicks as picks.
+        // Ignore double-clicks that are really the end of a drag (pan).
         if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) return;
         const target = e.target as Element;
         if (
@@ -408,7 +409,10 @@ export function Preview({
       )}
       {chrome && (
         <>
-          <div className="absolute right-3 top-3 flex gap-1 rounded-lg border border-border bg-surface/90 p-1 shadow-sm backdrop-blur">
+          <div
+            className="absolute top-3 right-3 flex gap-1 rounded-lg border border-border bg-surface/90 p-1 shadow-sm backdrop-blur"
+            data-tour="preview-tools"
+          >
             <IconButton label="Reset view" onClick={fit}>
               <RotateCcw size={16} />
             </IconButton>
@@ -446,8 +450,18 @@ export function Preview({
               </IconButton>
             )}
           </div>
-          <div className="absolute bottom-3 right-3 rounded bg-surface/80 px-2 py-0.5 font-mono text-[11px] text-muted">
-            mermaid v{MERMAID_VERSION}
+          <div className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-2">
+            {onElementClick && (
+              <span
+                className="hidden rounded bg-surface/80 px-2 py-0.5 text-[11px] text-muted lg:inline"
+                data-tour="dblclick-hint"
+              >
+                Double-click a shape to edit its code
+              </span>
+            )}
+            <span className="rounded bg-surface/80 px-2 py-0.5 font-mono text-[11px] text-muted">
+              mermaid v{MERMAID_VERSION}
+            </span>
           </div>
         </>
       )}

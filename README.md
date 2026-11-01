@@ -15,6 +15,7 @@ A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor 
   - Avatars of who is here, and a follow mode
   - The diagram title updates live for everyone
   - Undo only undoes your own changes
+- **Guided tour:** a spotlight tour of the library and the editor for first-time visitors, with "Don't show this again", replay from the account menu, and a short "What's new" tour when features are added. Double-click a shape in the preview to jump to its code.
 - **Board limit:** each person can own up to 5 boards by default (trash included), to keep the shared server small. A meter in the sidebar shows usage; change it with `MAX_BOARDS_PER_USER`.
 - **Library:** nested folders (drag diagrams onto them), recent, starred, search over titles and code, trash, duplicate, and live "who's editing" avatars on each card.
 - **Version history:**
@@ -55,13 +56,13 @@ multiplayer in action. The scratchpad at `/play` works without signing in.
 
 ## Scripts
 
-| Command          | What it does                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| `pnpm dev`       | Vite (5173) and the API/collab server (3001) with reload                                               |
-| `pnpm typecheck` | TypeScript across all packages                                                                         |
-| `pnpm test`      | Unit tests, plus server integration tests (needs the `gramify_test` database)                          |
-| `pnpm e2e`       | Playwright: two-user collaboration, history, library and playground (needs the `gramify_e2e` database) |
-| `pnpm build`     | Production build of the web app                                                                        |
+| Command          | What it does                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`       | Vite (5173) and the API/collab server (3001) with reload                                                     |
+| `pnpm typecheck` | TypeScript across all packages                                                                               |
+| `pnpm test`      | Unit tests, plus server integration tests (needs the `gramify_test` database)                                |
+| `pnpm e2e`       | Playwright: two-user collaboration, history, library, tour and playground (needs the `gramify_e2e` database) |
+| `pnpm build`     | Production build of the web app                                                                              |
 
 ## Layout
 
@@ -72,6 +73,9 @@ packages/shared  Types, mermaid.live link codec, presence colours, branding
 e2e/             Playwright tests
 docs/            PLAN.md (spec), RESEARCH.md, DEPLOY.md (Railway + Google OAuth)
 ```
+
+**Adding a feature?** Add a step for it to the tour in `apps/web/src/tour/steps.ts` (see
+[CONTRIBUTING.md](CONTRIBUTING.md)).
 
 To rename the product, edit `packages/shared/src/brand.ts`, plus the `<title>` and favicon in `apps/web`.
 

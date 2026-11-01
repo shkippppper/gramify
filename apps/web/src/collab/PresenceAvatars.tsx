@@ -26,7 +26,7 @@ export function PresenceAvatars({
   if (!peers.length) return null;
   const shown = peers.slice(0, 5);
   return (
-    <div className="flex items-center -space-x-1.5" data-testid="presence">
+    <div className="flex items-center -space-x-1.5" data-testid="presence" data-tour="presence">
       {shown.map(([id, st]) => (
         <button
           key={id}

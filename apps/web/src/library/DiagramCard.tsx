@@ -221,9 +221,10 @@ export function DiagramCard({
     'relative block aspect-[4/3] min-h-0 overflow-hidden rounded-t-xl border-b border-border bg-white p-3';
   return (
     <div
-      className="group relative flex flex-col rounded-xl border border-border bg-surface transition-shadow focus-within:z-10 hover:z-10 hover:shadow-md"
+      className="tp-fade group relative flex flex-col rounded-xl border border-border bg-surface transition-[box-shadow,transform,border-color] duration-200 focus-within:z-10 hover:z-10 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-lg"
       {...dragProps}
       data-testid="diagram-card"
+      data-tour="board-card"
     >
       {href ? (
         <Link to={href} className={frame} tabIndex={-1} aria-hidden>

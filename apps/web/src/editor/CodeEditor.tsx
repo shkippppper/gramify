@@ -63,6 +63,9 @@ export function CodeEditor({ session, tab, dark, codeMarker, configMarker, onRea
     const editor = monaco.editor.create(host.current!, {
       model: tabRef.current === 'code' ? code : config,
       automaticLayout: true,
+      smoothScrolling: true,
+      cursorSmoothCaretAnimation: 'on',
+      cursorBlinking: 'smooth',
       minimap: { enabled: false },
       fontSize: 14,
       lineNumbersMinChars: 3,

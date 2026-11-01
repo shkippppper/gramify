@@ -126,8 +126,17 @@ body {
   cursor: pointer;
 }
 .tp-picked {
-  filter: drop-shadow(0 0 3px var(--tp-accent)) drop-shadow(0 0 6px var(--tp-accent));
-  transition: filter 150ms;
+  /* A thin, crisp outline that fades out (not a big glow). */
+  animation: tp-picked 1.2s ease-out forwards;
+}
+@keyframes tp-picked {
+  0%,
+  60% {
+    filter: drop-shadow(0 0 0.75px var(--tp-accent)) drop-shadow(0 0 0.75px var(--tp-accent));
+  }
+  100% {
+    filter: none;
+  }
 }
 .tp-flash-line {
   background: color-mix(in srgb, var(--tp-accent) 12%, transparent);
@@ -139,5 +148,69 @@ body {
 
 /* Code → diagram: shapes for the editor's current line. */
 .tp-preview svg .tp-hl {
-  filter: drop-shadow(0 0 2px var(--tp-accent)) drop-shadow(0 0 5px var(--tp-accent));
+  filter: drop-shadow(0 0 0.75px var(--tp-accent)) drop-shadow(0 0 0.75px var(--tp-accent));
+}
+
+/* ---- Interaction polish -------------------------------------------------- */
+@layer base {
+  /* Tailwind's reset gives buttons the default arrow; anything clickable gets the hand. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not(:disabled),
+  [role='tab'],
+  a[href],
+  select:not(:disabled),
+  summary,
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='radio']) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@keyframes tp-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes tp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.tp-fade {
+  animation: tp-fade 180ms ease-out;
+}
+.tp-pop {
+  animation: tp-pop 120ms ease-out;
+}
+.tp-rise {
+  animation: tp-rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Page content eases in on navigation. */
+.tp-page {
+  animation: tp-fade 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

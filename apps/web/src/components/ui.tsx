@@ -3,6 +3,7 @@ import { ChevronDown, X } from 'lucide-react';
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -25,7 +26,7 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={clsx(
-        'grid size-8 shrink-0 place-items-center rounded-md transition-colors disabled:opacity-40',
+        'grid size-8 shrink-0 place-items-center rounded-md transition-[color,background-color,transform] duration-150 active:scale-90 disabled:opacity-40',
         active ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-surface-2 hover:text-fg',
         className,
       )}
@@ -48,7 +49,7 @@ export function Button({
     <button
       type="button"
       className={clsx(
-        'inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[color,background-color,border-color,transform,filter] duration-150 active:scale-[0.97] disabled:opacity-50',
         size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3 text-sm',
         variant === 'primary' && 'bg-accent text-accent-fg hover:brightness-110',
         variant === 'secondary' && 'border border-border bg-surface text-fg hover:bg-surface-2',
@@ -208,7 +209,7 @@ export function Dialog({
   if (!open) return null;
   return createPortal(
     <div
-      className="fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] place-items-center overflow-y-auto bg-black/40 p-4"
+      className="tp-fade fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] place-items-center overflow-y-auto bg-black/40 p-4"
       onMouseDown={onClose}
     >
       <div
@@ -253,7 +254,11 @@ export interface MenuItem {
   disabled?: boolean;
 }
 
-/** Small accessible dropdown menu: focus moves in on open, arrow keys move, Escape returns focus. */
+/**
+ * Small accessible dropdown menu. It renders in a portal with fixed positioning so no
+ * scrolling/clipping container can cut it off, and opens upward when there's no room below.
+ * Focus moves in on open, arrow keys move, Escape returns focus to the trigger.
+ */
 export function Menu({
   trigger,
   items,
@@ -268,6 +273,7 @@ export function Menu({
   align?: 'left' | 'right';
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerEl = () => ref.current?.querySelector<HTMLElement>('button');
@@ -277,79 +283,133 @@ export function Menu({
   ];
   const close = (refocus: boolean) => {
     setOpen(false);
+    setPos(null);
     if (refocus) triggerEl()?.focus();
   };
+
+  // Position next to the trigger; flip above it if it would overflow the viewport. While open,
+  // follow the trigger (the page may scroll or the list may reflow under it), and close once the
+  // trigger is gone or scrolled out of view.
+  useLayoutEffect(() => {
+    if (!open) return;
+    let last = '';
+    const place = () => {
+      const el = triggerEl();
+      const m = menuRef.current;
+      if (!m) return;
+      if (!el?.isConnected) return close(false);
+      const t = el.getBoundingClientRect();
+      if (t.bottom < 0 || t.top > window.innerHeight) return close(false);
+      const { width, height } = m.getBoundingClientRect();
+      const gap = 4;
+      const up = t.bottom + gap + height > window.innerHeight - 8 && t.top - gap - height > 8;
+      const top = up ? t.top - gap - height : t.bottom + gap;
+      let left = align === 'right' ? t.right - width : t.left;
+      left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+      const key = `${Math.round(top)}:${Math.round(left)}:${up}`;
+      if (key !== last) {
+        last = key;
+        setPos({ top, left, up });
+      }
+    };
+    place();
+    let frame = 0;
+    const loop = () => {
+      place();
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, align]);
+
+  useEffect(() => {
+    if (!open || !pos) return;
+    if (!menuRef.current?.contains(document.activeElement)) menuItems()[0]?.focus();
+  }, [open, pos]);
+
   useEffect(() => {
     if (!open) return;
-    menuItems()[0]?.focus();
-    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!ref.current?.contains(t) && !menuRef.current?.contains(t)) close(false);
+    };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+
   return (
     <div ref={ref} className="relative">
       {trigger({
-        onClick: () => setOpen((o) => !o),
+        onClick: () => (open ? close(false) : setOpen(true)),
         'aria-expanded': open,
         'aria-haspopup': 'menu',
       })}
-      {open && (
-        <div
-          ref={menuRef}
-          role="menu"
-          onKeyDown={(e) => {
-            const list = menuItems();
-            const i = list.indexOf(document.activeElement as HTMLButtonElement);
-            if (e.key === 'Escape') {
-              e.stopPropagation();
-              close(true);
-            } else if (e.key === 'Tab') {
-              close(false);
-            } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-              e.preventDefault();
-              const n = list.length;
-              list[(i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n]?.focus();
-            } else if (e.key === 'Home' || e.key === 'End') {
-              e.preventDefault();
-              (e.key === 'Home' ? list[0] : list[list.length - 1])?.focus();
-            }
-          }}
-          className={clsx(
-            'absolute z-40 mt-1 min-w-44 rounded-lg border border-border bg-surface p-1 shadow-lg',
-            align === 'right' ? 'right-0' : 'left-0',
-          )}
-        >
-          {items.map((it, i) =>
-            it === 'separator' ? (
-              <div key={i} role="separator" className="my-1 h-px bg-border" />
-            ) : 'header' in it ? (
-              <MenuHeader key={i}>{it.header}</MenuHeader>
-            ) : (
-              <button
-                key={i}
-                role="menuitem"
-                type="button"
-                tabIndex={-1}
-                disabled={it.disabled}
-                onClick={() => {
-                  // Return focus to the trigger first so a dialog opened by the action restores to it.
-                  close(true);
-                  it.onSelect();
-                }}
-                className={clsx(
-                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none disabled:opacity-40',
-                  it.danger
-                    ? 'text-danger hover:bg-danger/10 focus:bg-danger/10'
-                    : 'text-fg hover:bg-surface-2 focus:bg-surface-2',
-                )}
-              >
-                {it.icon && <span className="text-muted">{it.icon}</span>}
-                {it.label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            onKeyDown={(e) => {
+              const list = menuItems();
+              const i = list.indexOf(document.activeElement as HTMLButtonElement);
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                close(true);
+              } else if (e.key === 'Tab') {
+                close(true);
+              } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const n = list.length;
+                list[(i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n]?.focus();
+              } else if (e.key === 'Home' || e.key === 'End') {
+                e.preventDefault();
+                (e.key === 'Home' ? list[0] : list[list.length - 1])?.focus();
+              }
+            }}
+            style={{
+              position: 'fixed',
+              top: pos?.top ?? -9999,
+              left: pos?.left ?? -9999,
+              visibility: pos ? 'visible' : 'hidden',
+            }}
+            className={clsx(
+              'tp-pop z-[60] min-w-44 rounded-lg border border-border bg-surface p-1 shadow-lg',
+              pos?.up ? 'origin-bottom' : 'origin-top',
+            )}
+          >
+            {items.map((it, i) =>
+              it === 'separator' ? (
+                <div key={i} role="separator" className="my-1 h-px bg-border" />
+              ) : 'header' in it ? (
+                <MenuHeader key={i}>{it.header}</MenuHeader>
+              ) : (
+                <button
+                  key={i}
+                  role="menuitem"
+                  type="button"
+                  tabIndex={-1}
+                  disabled={it.disabled}
+                  onClick={() => {
+                    // Return focus to the trigger first so a dialog opened by the action restores to it.
+                    close(true);
+                    it.onSelect();
+                  }}
+                  className={clsx(
+                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors disabled:opacity-40',
+                    it.danger
+                      ? 'text-danger hover:bg-danger/10 focus:bg-danger/10'
+                      : 'text-fg hover:bg-surface-2 focus:bg-surface-2',
+                  )}
+                >
+                  {it.icon && <span className="text-muted">{it.icon}</span>}
+                  {it.label}
+                </button>
+              ),
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

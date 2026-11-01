@@ -100,6 +100,7 @@ function UsageMeter() {
       className="mx-2 mb-2 rounded-lg border border-border px-3 py-2"
       title="Each person can own a limited number of boards, to keep the shared server small. Boards in the trash count too."
       data-testid="usage"
+      data-tour="usage"
     >
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted">Your boards</span>
@@ -242,43 +243,45 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
 
   return (
     <nav className="flex h-full flex-col gap-0.5 overflow-y-auto p-2" aria-label="Library">
-      <NavItem
-        active={view === 'recent'}
-        onClick={() => onSelect('recent', null)}
-        icon={<Clock size={15} className="text-muted" />}
-      >
-        Recent
-      </NavItem>
-      <NavItem
-        active={view === 'starred'}
-        onClick={() => onSelect('starred', null)}
-        icon={<Star size={15} className="text-muted" />}
-      >
-        Starred
-      </NavItem>
-      <NavItem
-        active={view === 'all'}
-        onClick={() => onSelect('all', null)}
-        icon={<LayoutGrid size={15} className="text-muted" />}
-      >
-        All boards
-      </NavItem>
-      <NavItem
-        active={view === 'shared'}
-        onClick={() => onSelect('shared', null)}
-        icon={<Users size={15} className="text-muted" />}
-      >
-        Shared with me
-      </NavItem>
-      <NavItem
-        active={view === 'mine' && !folderId}
-        onClick={() => onSelect('mine', null)}
-        onDropDiagram={(id) => move.mutate({ id, folderId: null })}
-        icon={<UserIcon size={15} className="text-muted" />}
-      >
-        My boards
-      </NavItem>
-      <div className="mt-4 mb-1 flex items-center justify-between pr-1 pl-2">
+      <div className="flex flex-col gap-0.5" data-tour="nav-views">
+        <NavItem
+          active={view === 'recent'}
+          onClick={() => onSelect('recent', null)}
+          icon={<Clock size={15} className="text-muted" />}
+        >
+          Recent
+        </NavItem>
+        <NavItem
+          active={view === 'starred'}
+          onClick={() => onSelect('starred', null)}
+          icon={<Star size={15} className="text-muted" />}
+        >
+          Starred
+        </NavItem>
+        <NavItem
+          active={view === 'all'}
+          onClick={() => onSelect('all', null)}
+          icon={<LayoutGrid size={15} className="text-muted" />}
+        >
+          All boards
+        </NavItem>
+        <NavItem
+          active={view === 'shared'}
+          onClick={() => onSelect('shared', null)}
+          icon={<Users size={15} className="text-muted" />}
+        >
+          Shared with me
+        </NavItem>
+        <NavItem
+          active={view === 'mine' && !folderId}
+          onClick={() => onSelect('mine', null)}
+          onDropDiagram={(id) => move.mutate({ id, folderId: null })}
+          icon={<UserIcon size={15} className="text-muted" />}
+        >
+          My boards
+        </NavItem>
+      </div>
+      <div className="mt-4 mb-1 flex items-center justify-between pr-1 pl-2" data-tour="folders">
         <span
           className="text-xs font-semibold tracking-wide text-muted uppercase"
           title="Only you see your folders"
@@ -300,13 +303,15 @@ export function Sidebar({ view, folderId, folders, onSelect }: Props) {
       {folders.length === 0 && <p className="px-2 text-xs text-muted">No folders yet.</p>}
       <div className="mt-auto pt-4">
         <UsageMeter />
-        <NavItem
-          active={view === 'trash'}
-          onClick={() => onSelect('trash', null)}
-          icon={<Trash2 size={15} className="text-muted" />}
-        >
-          Trash
-        </NavItem>
+        <div data-tour="trash">
+          <NavItem
+            active={view === 'trash'}
+            onClick={() => onSelect('trash', null)}
+            icon={<Trash2 size={15} className="text-muted" />}
+          >
+            Trash
+          </NavItem>
+        </div>
       </div>
 
       <Dialog

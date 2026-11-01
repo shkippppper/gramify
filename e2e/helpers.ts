@@ -18,8 +18,10 @@ export async function typeAtEnd(page: Page, text: string) {
 
 let n = 0;
 /** A signed-in page for a fresh user (dev login). The email is stored on the page for sharing. */
-export async function userPage(browser: Browser, name: string) {
+export async function userPage(browser: Browser, name: string, opts: { tour?: boolean } = {}) {
   const ctx = await browser.newContext();
+  // The first-run tour would cover the UI the tests click; its own test turns it back on.
+  if (!opts.tour) await ctx.addInitScript(() => localStorage.setItem('tp-tour-off', '1'));
   const page = await ctx.newPage();
   const email = `${name.toLowerCase().replace(/\W+/g, '.')}.${Date.now()}.${n++}@example.com`;
   await page.goto('/login');

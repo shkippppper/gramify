@@ -58,7 +58,7 @@ export function Thumbnail({
         <img
           src={src}
           alt=""
-          className="size-full object-contain"
+          className="tp-fade size-full object-contain"
           loading="lazy"
           draggable={false}
         />

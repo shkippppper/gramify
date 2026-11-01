@@ -27,6 +27,7 @@ import type { monaco } from '../editor/monaco';
 import { HistoryPanel } from '../history/HistoryPanel';
 import { api, ApiError } from '../lib/api';
 import { FullPageSpinner, useMe } from '../lib/auth';
+import { TourHost } from '../tour/Tour';
 import { formatDateTime } from '../lib/time';
 import { throttleTrailing } from '../lib/throttle';
 import { useLocalState } from '../lib/useLocalState';
@@ -53,6 +54,7 @@ function StatusBadge({
     <span
       className="hidden items-center gap-1.5 text-xs text-muted sm:flex"
       data-testid="status"
+      data-tour="status"
       data-status={status}
     >
       <span
@@ -103,6 +105,7 @@ function TitleInput({ session, fallback }: { session: DiagramSession; fallback: 
       readOnly={session.readOnly}
       aria-label="Diagram title"
       data-testid="title-input"
+      data-tour="title"
       className="min-w-0 flex-1 truncate rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm font-medium outline-none hover:border-border focus:border-accent sm:max-w-80"
     />
   );
@@ -263,6 +266,7 @@ export function DiagramPage() {
   return (
     <>
       <RemoteCursorStyles session={session} />
+      <TourHost tour="editor" userId={me.data?.id} />
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} diagram={d} />
       <DiagramWorkspace
         diagramId={d.id}
@@ -311,6 +315,7 @@ export function DiagramPage() {
                     setHistoryOpen(!historyOpen);
                   }}
                   aria-pressed={historyOpen}
+                  data-tour="history"
                 >
                   <History size={14} /> <span className="hidden lg:inline">History</span>
                 </Button>
@@ -461,7 +466,7 @@ function ShareMenu({
   return (
     <Menu
       trigger={(p) => (
-        <Button size="sm" variant="ghost" {...p}>
+        <Button size="sm" variant="ghost" data-tour="share" {...p}>
           <Share2 size={14} /> <span className="hidden lg:inline">Share</span>
         </Button>
       )}

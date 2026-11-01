@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, LogOut, Pencil, X } from 'lucide-react';
+import { Check, Compass, LogOut, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { startTour } from '../tour/Tour';
 import { authClient, useMe, useSignOut } from '../lib/auth';
 import { Avatar, IconButton, Menu, Spinner } from './ui';
 
@@ -119,17 +121,32 @@ function EditableName({ name, email }: { name: string; email: string }) {
 export function UserMenu() {
   const me = useMe();
   const signOut = useSignOut();
+  const navigate = useNavigate();
   if (!me.data) return null;
   return (
     <Menu
       trigger={(p) => (
-        <button type="button" {...p} className="rounded-full" aria-label="Account menu">
+        <button
+          type="button"
+          {...p}
+          className="rounded-full transition-transform active:scale-95"
+          aria-label="Account menu"
+          data-tour="account"
+        >
           <Avatar name={me.data!.name} image={me.data!.image} size={28} />
         </button>
       )}
       items={[
         { header: <EditableName name={me.data.name} email={me.data.email} /> },
         'separator',
+        {
+          label: 'Take the tour',
+          icon: <Compass size={14} />,
+          onSelect: () => {
+            // Pages without a tour of their own (the playground) send you to the library's.
+            if (!startTour()) navigate('/');
+          },
+        },
         { label: 'Sign out', icon: <LogOut size={14} />, onSelect: () => void signOut() },
       ]}
     />
