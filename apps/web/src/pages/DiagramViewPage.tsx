@@ -17,7 +17,7 @@ function LiveView({ session }: { session: DiagramSession }) {
 
 /** Full-screen, live-updating view of a shared diagram (great for presenting). */
 export function DiagramViewPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useParams<{ id: string }>().id?.toLowerCase();
   const me = useMe();
   const collab = useCollab(id, me.data);
   if (collab.error)

@@ -39,17 +39,36 @@ export function createLocalDoc(code = DEFAULT_CODE, config = DEFAULT_CONFIG) {
   return doc;
 }
 
+/** Move an index off the middle of a UTF-16 surrogate pair (emoji etc.). */
+function safeIndex(text: string, i: number) {
+  if (i > 0 && i < text.length) {
+    const hi = text.charCodeAt(i - 1);
+    const lo = text.charCodeAt(i);
+    if (hi >= 0xd800 && hi <= 0xdbff && lo >= 0xdc00 && lo <= 0xdfff) return i - 1;
+  }
+  return i;
+}
+
 /** Replace the whole text of a Y.Text in one transaction (minimal diff at the ends). */
 export function replaceText(ytext: Y.Text, next: string, origin?: unknown) {
   const prev = ytext.toString();
   if (prev === next) return;
   let start = 0;
   while (start < prev.length && start < next.length && prev[start] === next[start]) start++;
+  start = Math.min(safeIndex(prev, start), safeIndex(next, start));
   let endPrev = prev.length;
   let endNext = next.length;
   while (endPrev > start && endNext > start && prev[endPrev - 1] === next[endNext - 1]) {
     endPrev--;
     endNext--;
+  }
+  while (
+    (safeIndex(prev, endPrev) !== endPrev || safeIndex(next, endNext) !== endNext) &&
+    endPrev < prev.length &&
+    endNext < next.length
+  ) {
+    endPrev++;
+    endNext++;
   }
   const doc = ytext.doc;
   const apply = () => {

@@ -86,6 +86,7 @@ function connect(diagramId: string, cookie: string, name: string) {
   );
   return {
     doc,
+    provider,
     synced,
     denied,
     destroy: () => {
@@ -419,5 +420,103 @@ describe('access control', () => {
     expect((await eve.call('PATCH', `/folders/${folder.id}`, { name: 'x' })).status).toBe(404);
     expect((await eve.call('DELETE', `/folders/${folder.id}`)).status).toBe(404);
     expect((await eve.call('POST', '/diagrams', { folderId: folder.id })).status).toBe(400);
+  });
+});
+
+describe('overhaul regressions', () => {
+  it('keeps emoji intact when replacing text', () => {
+    const doc = new Y.Doc();
+    const t = doc.getText('t');
+    t.insert(0, 'a😀b');
+    replaceYText(t, 'a😁b');
+    expect(t.toString()).toBe('a😁b');
+    replaceYText(t, 'a😁😀b');
+    expect(t.toString()).toBe('a😁😀b');
+  });
+
+  it('rejects non-canonical (upper-case) document names', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'Case' })).body;
+    const upper = connect(id.toUpperCase(), ada.cookie, 'ada-upper');
+    expect(await upper.denied).toBeTruthy();
+    upper.destroy();
+    // REST accepts either case but always works on the canonical id.
+    expect((await ada.call('GET', `/diagrams/${id.toUpperCase()}`)).body.id).toBe(id);
+  });
+
+  it('does not duplicate a never-edited board when a client reconnects', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const { id } = (
+      await ada.call('POST', '/diagrams', { title: 'Fresh', code: 'graph TD\n  A-->B\n' })
+    ).body;
+    const first = connect(id, ada.cookie, 'ada1');
+    await first.synced;
+    const kept = first.doc; // the client keeps its doc across a reconnect
+    first.destroy();
+    await new Promise((r) => setTimeout(r, 300)); // server unloads the document
+    const doc2 = new Y.Doc();
+    Y.applyUpdate(doc2, Y.encodeStateAsUpdate(kept));
+    const again = connect(id, ada.cookie, 'ada2');
+    Y.applyUpdate(again.doc, Y.encodeStateAsUpdate(doc2));
+    await again.synced;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(again.doc.getText(YDOC.code).toString()).toBe('graph TD\n  A-->B\n');
+    again.destroy();
+  });
+
+  it('stamps presence with the signed-in identity', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const grace = await signIn('grace@example.com', 'Grace Hopper');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'Who' })).body;
+    await ada.call('POST', `/diagrams/${id}/members`, {
+      email: 'grace@example.com',
+      role: 'viewer',
+    });
+    const a = connect(id, ada.cookie, 'ada');
+    const g = connect(id, grace.cookie, 'grace');
+    await Promise.all([a.synced, g.synced]);
+    // Grace (a viewer) pretends to be Ada.
+    g.provider.awareness!.setLocalStateField('user', {
+      id: 'x',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      image: null,
+      color: '#000',
+    });
+    await waitFor(() =>
+      [...a.provider.awareness!.getStates().entries()].some(
+        ([cid, st]) =>
+          cid === g.doc.clientID &&
+          (st as { user?: { email?: string } }).user?.email === 'grace@example.com',
+      ),
+    );
+    a.destroy();
+    g.destroy();
+  });
+
+  it('refuses cross-site API writes and hides trashed boards from members', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const grace = await signIn('grace@example.com', 'Grace Hopper');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'Origin' })).body;
+    const evil = await fetch(`${base}/api/diagrams/${id}/duplicate`, {
+      method: 'POST',
+      headers: { cookie: ada.cookie, origin: 'https://evil.example' },
+    });
+    expect(evil.status).toBe(403);
+    await ada.call('POST', `/diagrams/${id}/members`, { email: 'grace@example.com' });
+    await ada.call('DELETE', `/diagrams/${id}`);
+    expect((await grace.call('GET', `/diagrams/${id}`)).status).toBe(404);
+    expect((await ada.call('GET', `/diagrams/${id}`)).status).toBe(200);
+  });
+
+  it('lists versions without content and serves one version on demand', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const { id } = (await ada.call('POST', '/diagrams', { title: 'V', code: 'pie\n "a": 1\n' }))
+      .body;
+    const { id: vid } = (await ada.call('POST', `/diagrams/${id}/versions`, { name: 'v1' })).body;
+    const list = (await ada.call('GET', `/diagrams/${id}/versions`)).body;
+    expect(list[0]).not.toHaveProperty('code');
+    const one = (await ada.call('GET', `/diagrams/${id}/versions/${vid}`)).body;
+    expect(one.code).toBe('pie\n "a": 1\n');
   });
 });

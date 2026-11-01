@@ -1,5 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramRole, DiagramVersion, PresenceState } from '@gramify/shared';
+import type {
+  DiagramRole,
+  DiagramVersionInfo as DiagramVersion,
+  PresenceState,
+} from '@gramify/shared';
+import { useVersionContent } from '../history/useVersionContent';
 import { serializeState } from '@gramify/shared';
 import clsx from 'clsx';
 import { ChevronRight, Eye, History, Link2, Share2, Square, Users } from 'lucide-react';
@@ -99,7 +104,7 @@ function TitleInput({ session, fallback }: { session: DiagramSession; fallback: 
 }
 
 export function DiagramPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useParams<{ id: string }>().id?.toLowerCase();
   const me = useMe();
   const qc = useQueryClient();
   const summary = useQuery({
@@ -242,6 +247,7 @@ export function DiagramPage() {
       <RemoteCursorStyles session={session} />
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} diagram={d} />
       <DiagramWorkspace
+        diagramId={d.id}
         session={session}
         title={d.title}
         previewRef={previewRef}
@@ -351,6 +357,7 @@ function Banner({ tone, children }: { tone: 'accent' | 'follow'; children: React
 
 /** Wraps the workspace so live code (for previews/diffs) is read from the shared doc. */
 function DiagramWorkspace({
+  diagramId,
   session,
   title,
   header,
@@ -362,6 +369,7 @@ function DiagramWorkspace({
   onPointer,
   onUserView,
 }: {
+  diagramId: string;
   session: DiagramSession;
   title: string;
   header: React.ReactNode;
@@ -374,13 +382,18 @@ function DiagramWorkspace({
   onUserView: (v: SharedView) => void;
 }) {
   const liveTitle = useYMapValue<string>(session.meta, 'title') ?? title;
+  const previewContent = useVersionContent(diagramId, previewing?.id);
   return (
     <EditorWorkspace
       session={session}
       title={liveTitle}
       header={header}
       side={side}
-      previewOverride={previewing ? { code: previewing.code, config: previewing.config } : null}
+      previewOverride={
+        previewContent.data && previewing
+          ? { code: previewContent.data.code, config: previewContent.data.config }
+          : null
+      }
       confirmSampleReplace
       fullscreenHref={`${location.pathname}/view`}
       previewRef={previewRef}

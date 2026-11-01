@@ -3,6 +3,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { BRAND } from '@gramify/shared';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { bodyLimit } from 'hono/body-limit';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import type { IncomingMessage } from 'node:http';
@@ -27,6 +28,26 @@ export async function createServer(port = env.PORT) {
       // Monaco and mermaid inject inline styles; keep CSP off rather than half-working.
       contentSecurityPolicy: undefined,
       crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // Mutating API calls must come from our own pages. Browsers always send Origin on
+  // non-GET requests, so a cross-site form/fetch riding on the session cookie is refused.
+  const appOrigin = new URL(env.BETTER_AUTH_URL).origin;
+  app.use('/api/*', async (c, next) => {
+    const m = c.req.method;
+    if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS') {
+      const origin = c.req.header('origin');
+      if (origin && origin !== appOrigin)
+        return c.json({ error: 'Cross-origin request refused' }, 403);
+    }
+    await next();
+  });
+  app.use(
+    '/api/*',
+    bodyLimit({
+      maxSize: 2 * 1024 * 1024,
+      onError: (c) => c.json({ error: 'Request too large' }, 413),
     }),
   );
 
@@ -78,7 +99,7 @@ export async function createServer(port = env.PORT) {
   const actualPort = typeof address === 'object' && address ? address.port : port;
 
   // ---- Realtime collaboration over WebSocket at /collab ----------------------
-  const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 4 * 1024 * 1024 });
 
   function toRequest(req: IncomingMessage) {
     const headers = new Headers();
@@ -122,7 +143,18 @@ export async function createServer(port = env.PORT) {
         ws.on('pong', () => conn.touch());
         ws.on('error', (e) => console.error('[collab] socket error', e.message));
         const ping = setInterval(() => ws.readyState === ws.OPEN && ws.ping(), 15_000);
-        ws.on('close', () => clearInterval(ping));
+        // Re-check the session periodically: signing out or a revoked session ends live access.
+        const recheck = setInterval(() => {
+          getSessionUser(request.headers)
+            .then((u) => {
+              if (!u && ws.readyState === ws.OPEN) ws.close(4401, 'Session ended');
+            })
+            .catch(() => undefined);
+        }, 5 * 60_000);
+        ws.on('close', () => {
+          clearInterval(ping);
+          clearInterval(recheck);
+        });
       });
     } catch (e) {
       console.error('[collab] upgrade failed', e);
@@ -142,9 +174,16 @@ export async function createServer(port = env.PORT) {
 
   async function close() {
     clearInterval(pruneTimer);
+    // Closing every connection makes Hocuspocus store and unload each open document;
+    // wait (bounded) until they are all gone so no edits are lost before the pool closes.
     hocuspocus.closeConnections();
-    await new Promise((r) => setTimeout(r, 300));
     hocuspocus.flushPendingStores();
+    const deadline = Date.now() + 15_000;
+    while (hocuspocus.getDocumentsCount() > 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (hocuspocus.getDocumentsCount() > 0)
+      console.warn(`[shutdown] ${hocuspocus.getDocumentsCount()} documents still open`);
     for (const c of wss.clients) c.terminate();
     await new Promise<void>((r) => server.close(() => r()));
   }

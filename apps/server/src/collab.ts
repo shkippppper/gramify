@@ -1,6 +1,17 @@
 import { Database as DatabaseExtension } from '@hocuspocus/extension-database';
-import { Hocuspocus, type onAuthenticatePayload, type onChangePayload } from '@hocuspocus/server';
-import { diagramIdFromDocName, docNameFor, YDOC, type PublicUser } from '@gramify/shared';
+import {
+  Hocuspocus,
+  type beforeHandleAwarenessPayload,
+  type onAuthenticatePayload,
+  type onChangePayload,
+} from '@hocuspocus/server';
+import {
+  colorForId,
+  diagramIdFromDocName,
+  docNameFor,
+  YDOC,
+  type PublicUser,
+} from '@gramify/shared';
 import { sql } from 'kysely';
 import * as Y from 'yjs';
 import type { SessionUser } from './auth.ts';
@@ -91,6 +102,8 @@ export async function insertVersion(
  * Used when a version is created manually so attribution isn't lost.
  */
 export async function takeContributors(diagramId: string): Promise<string[]> {
+  // Only open documents have pending contributors; don't create entries for closed ones.
+  if (!hocuspocus.documents.has(docNameFor(diagramId))) return [];
   const t = await track(diagramId);
   const ids = [...t.contributors];
   t.contributors.clear();
@@ -139,7 +152,11 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
     connectionConfig,
   }: onAuthenticatePayload<CollabContext>) {
     const id = diagramIdFromDocName(documentName);
-    if (!id || !UUID_RE.test(id)) throw new Error('Unknown document');
+    // Only the canonical (lower-case) name: "DIAGRAM:<UPPER>" would otherwise open a second,
+    // separately tracked copy of the same board that removals/trash don't reach.
+    if (!id || !UUID_RE.test(id) || documentName !== docNameFor(id.toLowerCase())) {
+      throw new Error('Unknown document');
+    }
     if (context.system) return;
     if (!context.user) throw new Error('Not authenticated');
     const access = await roleFor(id, context.user);
@@ -147,6 +164,22 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
     if (!access || access.deleted) throw new Error('Diagram not found');
     // Viewers receive live updates but their edits are rejected by the server.
     connectionConfig.readOnly = access.role === 'viewer';
+  },
+
+  /** Presence identity comes from the session, never from what the client claims. */
+  async beforeHandleAwareness({ context, states }: beforeHandleAwarenessPayload<CollabContext>) {
+    const u = context?.user;
+    if (!u) return;
+    for (const state of states.values()) {
+      if (!state || typeof state !== 'object') continue;
+      state.user = {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        image: u.image,
+        color: colorForId(u.id),
+      };
+    }
   },
 
   async onChange({ documentName, context }: onChangePayload<CollabContext>) {
@@ -169,23 +202,49 @@ export const hocuspocus = new Hocuspocus<CollabContext>({
           .executeTakeFirst();
         if (!row) return null;
         if (row.ydoc) return new Uint8Array(row.ydoc);
-        // First open: seed the Y.Doc from the plain-text columns.
+        // First open: seed the Y.Doc from the plain-text columns and persist that seed at once.
+        // Otherwise every load would build a *different* seed (new Yjs client id) and a client
+        // reconnecting with its kept doc would merge both, duplicating the whole diagram.
         const doc = buildDoc(row.code_text, row.config_text, row.title);
-        const state = Y.encodeStateAsUpdate(doc);
+        const seed = Buffer.from(Y.encodeStateAsUpdate(doc));
         doc.destroy();
-        return state;
+        await db
+          .updateTable('diagram')
+          .set({ ydoc: seed })
+          .where('id', '=', id)
+          .where('ydoc', 'is', null)
+          .execute();
+        const stored = await db
+          .selectFrom('diagram')
+          .select('ydoc')
+          .where('id', '=', id)
+          .executeTakeFirst();
+        return new Uint8Array(stored?.ydoc ?? seed);
       },
-      async store({ documentName, state, document }) {
+      async store({ documentName, state: stateIn, document }) {
+        let state: Uint8Array = stateIn;
         const id = diagramIdFromDocName(documentName);
         if (!id) return;
-        const content = readDoc(document);
         const t = await track(id);
         const prev = await db
           .selectFrom('diagram')
-          .select(['code_text', 'config_text', 'title'])
+          .select(['code_text', 'config_text', 'title', 'ydoc'])
           .where('id', '=', id)
           .executeTakeFirst();
         if (!prev) return;
+        // Merge with what's stored rather than overwrite it, so a second writer (e.g. the old
+        // instance during a redeploy) can never erase edits. Merging is idempotent.
+        let content = readDoc(document);
+        if (prev.ydoc) {
+          const merged = Y.mergeUpdates([new Uint8Array(prev.ydoc), state]);
+          const probe = new Y.Doc();
+          Y.applyUpdate(probe, merged);
+          if (readDoc(probe).code !== content.code || readDoc(probe).config !== content.config) {
+            content = readDoc(probe);
+          }
+          probe.destroy();
+          state = merged;
+        }
         const changed =
           prev.code_text !== content.code ||
           prev.config_text !== content.config ||
@@ -228,11 +287,6 @@ export async function editDoc(
     await conn.transact(fn);
   } finally {
     await conn.disconnect();
-  }
-  if (user) {
-    const t = await track(diagramId);
-    t.contributors.add(user.id);
-    t.lastEditor = user.id;
   }
 }
 

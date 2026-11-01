@@ -2,6 +2,7 @@ import type {
   DiagramMember,
   DiagramSummary,
   DiagramVersion,
+  DiagramVersionInfo,
   Folder,
   MemberRole,
   PublicUser,
@@ -86,7 +87,12 @@ export const api = {
     request<Folder>('PATCH', `/folders/${id}`, b),
   deleteFolder: (id: string) => request<void>('DELETE', `/folders/${id}`),
 
-  listVersions: (id: string) => request<DiagramVersion[]>('GET', `/diagrams/${id}/versions`),
+  listVersions: (id: string) => request<DiagramVersionInfo[]>('GET', `/diagrams/${id}/versions`),
+  getVersion: (id: string, vid: string) =>
+    request<Pick<DiagramVersion, 'id' | 'code' | 'config'>>(
+      'GET',
+      `/diagrams/${id}/versions/${vid}`,
+    ),
   saveVersion: (id: string, name: string) =>
     request<{ id: string }>('POST', `/diagrams/${id}/versions`, { name }),
   renameVersion: (id: string, vid: string, name: string) =>

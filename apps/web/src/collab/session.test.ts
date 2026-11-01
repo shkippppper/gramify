@@ -16,3 +16,11 @@ it('replaceText produces the target string with a minimal edit', () => {
   replaceText(t, 'x');
   expect(t.toString()).toBe('x');
 });
+
+it('replaceText keeps emoji intact', () => {
+  const doc = new Y.Doc();
+  const t = doc.getText('t');
+  t.insert(0, 'a😀b');
+  replaceText(t, 'a😁b');
+  expect(t.toString()).toBe('a😁b');
+});

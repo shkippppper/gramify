@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DiagramRole, DiagramVersion } from '@gramify/shared';
+import type { DiagramRole, DiagramVersionInfo as DiagramVersion } from '@gramify/shared';
+import { useVersionContent } from './useVersionContent';
 import { colorForId } from '@gramify/shared';
 import clsx from 'clsx';
 import { diffLines } from 'diff';
@@ -93,6 +94,31 @@ export function DiffView({ from, to }: { from: string; to: string }) {
         })}
       </pre>
     </div>
+  );
+}
+
+function ActiveDiff(props: {
+  diagramId: string;
+  versionId: string;
+  currentCode: string;
+  currentConfig: string;
+}) {
+  const content = useVersionContent(props.diagramId, props.versionId);
+  if (content.isPending) {
+    return (
+      <div className="grid place-items-center py-3 text-muted">
+        <Spinner />
+      </div>
+    );
+  }
+  if (!content.data) return <p className="text-xs text-danger">Couldn’t load this version.</p>;
+  return (
+    <>
+      <DiffView from={props.currentCode} to={content.data.code} />
+      {content.data.config !== props.currentConfig && (
+        <p className="text-xs text-muted">The config also differs.</p>
+      )}
+    </>
   );
 }
 
@@ -311,10 +337,12 @@ export function HistoryPanel({
                     </div>
                     {active && (
                       <div className="space-y-2 px-2 pb-2">
-                        <DiffView from={currentCode} to={v.code} />
-                        {v.config !== currentConfig && (
-                          <p className="text-xs text-muted">The config also differs.</p>
-                        )}
+                        <ActiveDiff
+                          diagramId={diagramId}
+                          versionId={v.id}
+                          currentCode={currentCode}
+                          currentConfig={currentConfig}
+                        />
                         {canEdit && (
                           <Button
                             size="sm"

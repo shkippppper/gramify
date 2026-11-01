@@ -15,5 +15,6 @@ export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 export function assertUuid(id: string) {
   if (!UUID.test(id)) throw new HTTPException(404, { message: 'Not found' });
-  return id;
+  // Postgres compares uuids case-insensitively but collab doc names don't: always use lower case.
+  return id.toLowerCase();
 }

@@ -44,17 +44,21 @@ export interface DiagramSummary {
 
 export type VersionKind = 'auto' | 'named' | 'restore';
 
-export interface DiagramVersion {
+/** A version as listed in history (no content: fetched on demand). */
+export interface DiagramVersionInfo {
   id: string;
   diagramId: string;
   kind: VersionKind;
   name: string | null;
-  code: string;
-  config: string;
   createdBy: PublicUser | null;
   /** Users who edited between the previous version and this one. */
   contributors: PublicUser[];
   createdAt: string;
+}
+
+export interface DiagramVersion extends DiagramVersionInfo {
+  code: string;
+  config: string;
 }
 
 /** Awareness state broadcast by every client. */

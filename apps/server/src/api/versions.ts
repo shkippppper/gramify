@@ -1,4 +1,4 @@
-import { YDOC, type DiagramVersion } from '@gramify/shared';
+import { YDOC, type DiagramVersion, type DiagramVersionInfo } from '@gramify/shared';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
@@ -10,22 +10,43 @@ import { assertUuid, requireUser, type AppEnv } from './context.ts';
 import { zValidator } from './validate.ts';
 
 /** Replace a Y.Text's content with a minimal edit at the differing middle. */
+/** Move an index off the middle of a UTF-16 surrogate pair (emoji etc.). */
+function safeIndex(text: string, i: number) {
+  if (i > 0 && i < text.length) {
+    const hi = text.charCodeAt(i - 1);
+    const lo = text.charCodeAt(i);
+    if (hi >= 0xd800 && hi <= 0xdbff && lo >= 0xdc00 && lo <= 0xdfff) return i - 1;
+  }
+  return i;
+}
+
+/** Replace a Y.Text's content with a minimal edit at the differing middle. */
 export function replaceYText(ytext: Y.Text, next: string) {
   const prev = ytext.toString();
   if (prev === next) return;
   let s = 0;
   while (s < prev.length && s < next.length && prev[s] === next[s]) s++;
+  s = Math.min(safeIndex(prev, s), safeIndex(next, s));
   let ep = prev.length;
   let en = next.length;
   while (ep > s && en > s && prev[ep - 1] === next[en - 1]) {
     ep--;
     en--;
   }
+  // Keep the shared suffix from starting inside a surrogate pair.
+  while (
+    (safeIndex(prev, ep) !== ep || safeIndex(next, en) !== en) &&
+    ep < prev.length &&
+    en < next.length
+  ) {
+    ep++;
+    en++;
+  }
   if (ep > s) ytext.delete(s, ep - s);
   if (en > s) ytext.insert(s, next.slice(s, en));
 }
 
-async function listVersions(diagramId: string): Promise<DiagramVersion[]> {
+async function listVersions(diagramId: string): Promise<DiagramVersionInfo[]> {
   const rows = await db
     .selectFrom('diagram_version as v')
     .leftJoin('user as u', 'u.id', 'v.created_by')
@@ -34,8 +55,6 @@ async function listVersions(diagramId: string): Promise<DiagramVersion[]> {
       'v.diagram_id',
       'v.kind',
       'v.name',
-      'v.code_text',
-      'v.config_text',
       'v.created_at',
       'v.created_by',
       'v.contributors',
@@ -45,7 +64,7 @@ async function listVersions(diagramId: string): Promise<DiagramVersion[]> {
     ])
     .where('v.diagram_id', '=', diagramId)
     .orderBy('v.created_at', 'desc')
-    .limit(500)
+    .limit(300)
     .execute();
   const ids = [...new Set(rows.flatMap((r) => r.contributors))];
   const users = ids.length
@@ -63,8 +82,6 @@ async function listVersions(diagramId: string): Promise<DiagramVersion[]> {
     diagramId: r.diagram_id,
     kind: r.kind,
     name: r.name,
-    code: r.code_text,
-    config: r.config_text,
     createdAt: r.created_at.toISOString(),
     createdBy:
       r.created_by && r.user_name && r.user_email
@@ -82,6 +99,31 @@ export const versions = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     await requireRole(id, c.get('user'), 'viewer');
     return c.json(await listVersions(id));
+  })
+  .get('/:id/versions/:vid', async (c) => {
+    const id = assertUuid(c.req.param('id'));
+    const vid = assertUuid(c.req.param('vid'));
+    await requireRole(id, c.get('user'), 'viewer');
+    const row = await db
+      .selectFrom('diagram_version')
+      .select(['id', 'diagram_id', 'kind', 'name', 'code_text', 'config_text', 'created_at'])
+      .where('id', '=', vid)
+      .where('diagram_id', '=', id)
+      .executeTakeFirst();
+    if (!row) throw new HTTPException(404, { message: 'Version not found' });
+    const v: Pick<
+      DiagramVersion,
+      'id' | 'diagramId' | 'kind' | 'name' | 'code' | 'config' | 'createdAt'
+    > = {
+      id: row.id,
+      diagramId: row.diagram_id,
+      kind: row.kind,
+      name: row.name,
+      code: row.code_text,
+      config: row.config_text,
+      createdAt: row.created_at.toISOString(),
+    };
+    return c.json(v);
   })
   .post('/:id/versions', zValidator('json', nameBody), async (c) => {
     const id = assertUuid(c.req.param('id'));

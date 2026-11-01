@@ -13,7 +13,7 @@ import { sql, type Selectable } from 'kysely';
 import { z } from 'zod';
 import { requireRole, roleExpr } from '../access.ts';
 import type { SessionUser } from '../auth.ts';
-import { closeDiagram, disconnectUser, editDoc, presence } from '../collab.ts';
+import { closeDiagram, currentContent, disconnectUser, editDoc, presence } from '../collab.ts';
 import { db } from '../db/index.ts';
 import type { DiagramTable } from '../db/schema.ts';
 import { assertUuid, requireUser, type AppEnv } from './context.ts';
@@ -240,7 +240,10 @@ export const diagrams = new Hono<AppEnv>()
     const id = assertUuid(c.req.param('id'));
     const me = c.get('user');
     const summary = await getSummary(id, me);
-    if (!summary) throw new HTTPException(404, { message: 'Diagram not found' });
+    // Trashed boards are only visible to their owner (in the trash).
+    if (!summary || (summary.deletedAt && summary.role !== 'owner')) {
+      throw new HTTPException(404, { message: 'Diagram not found' });
+    }
     if (!summary.deletedAt) {
       await db
         .insertInto('diagram_visit')
@@ -278,6 +281,7 @@ export const diagrams = new Hono<AppEnv>()
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirstOrThrow();
+    const live = await currentContent(id);
     const row = await db
       .insertInto('diagram')
       .values({
@@ -286,8 +290,9 @@ export const diagrams = new Hono<AppEnv>()
         folder_id: role === 'owner' ? src.folder_id : null,
         owner_id: me.id,
         updated_by: me.id,
-        code_text: src.code_text,
-        config_text: src.config_text,
+        // Use the live document if open: the stored text can lag behind by a few seconds.
+        code_text: live?.code ?? src.code_text,
+        config_text: live?.config ?? src.config_text,
         ydoc: null,
         deleted_at: null,
       })
@@ -371,7 +376,7 @@ export const diagrams = new Hono<AppEnv>()
   .delete('/:id/members/:email', async (c) => {
     const id = assertUuid(c.req.param('id'));
     const me = c.get('user');
-    const email = decodeURIComponent(c.req.param('email')).toLowerCase();
+    const email = c.req.param('email').toLowerCase(); // already URL-decoded by Hono
     // The owner can remove anyone; members can remove themselves (leave the board).
     if (email !== me.email.toLowerCase()) await requireRole(id, me, 'owner');
     else await requireRole(id, me, 'viewer');
