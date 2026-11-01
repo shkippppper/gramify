@@ -46,7 +46,7 @@ Each item says why it matters and roughly where the work goes.
 
 ## Editor
 
-- [ ] **Code → diagram highlight**, the reverse of click-to-code: when the cursor is on a line, highlight the
+- [x] **Code → diagram highlight**, the reverse of click-to-code: when the cursor is on a line, highlight the
       matching shape in the preview. It can reuse the ID mapping in `apps/web/src/render/locate.ts`.
 - [ ] Make click-to-code work for more diagram types: Git graph commits, Gantt sections, quadrant points, and
       sequence messages that repeat the same text.
