@@ -54,13 +54,13 @@ multiplayer in action. The scratchpad at `/play` works without signing in.
 
 ## Scripts
 
-| Command          | What it does                                                                                            |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`       | Vite (5173) and the API/collab server (3001) with reload                                                |
-| `pnpm typecheck` | TypeScript across all packages                                                                          |
+| Command          | What it does                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`       | Vite (5173) and the API/collab server (3001) with reload                                               |
+| `pnpm typecheck` | TypeScript across all packages                                                                         |
 | `pnpm test`      | Unit tests, plus server integration tests (needs the `gramify_test` database)                          |
 | `pnpm e2e`       | Playwright: two-user collaboration, history, library and playground (needs the `gramify_e2e` database) |
-| `pnpm build`     | Production build of the web app                                                                         |
+| `pnpm build`     | Production build of the web app                                                                        |
 
 ## Layout
 
@@ -77,5 +77,3 @@ To rename the product, edit `packages/shared/src/brand.ts`, plus the `<title>` a
 ## Deploy
 
 See [docs/DEPLOY.md](docs/DEPLOY.md). It is one Docker service plus Postgres on Railway.
-
-
