@@ -568,3 +568,22 @@ describe('board quota', () => {
     }
   });
 });
+
+describe('display names', () => {
+  it('lets people rename themselves, trimming and validating the name', async () => {
+    const nia = await signIn(`nia.${Date.now()}@example.com`, 'Nia');
+    const update = (name: string) =>
+      fetch(`${base}/api/auth/update-user`, {
+        method: 'POST',
+        headers: { cookie: nia.cookie, origin: ORIGIN, 'content-type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+    expect((await update('   ')).status).toBe(400);
+    expect((await update('x'.repeat(81))).status).toBe(400);
+    expect((await update('  Nia   Okafor  ')).status).toBe(200);
+    // Stored tidied (checked via the DB-backed owner name; the test's cookie still caches the old one).
+    expect((await nia.call('POST', '/diagrams', { title: 'Mine' })).body.owner.name).toBe(
+      'Nia Okafor',
+    );
+  });
+});

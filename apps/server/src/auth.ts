@@ -68,6 +68,19 @@ export const authOptions = {
     : {},
   databaseHooks: {
     user: {
+      update: {
+        // Display names are user-editable: keep them tidy and sane.
+        async before(data) {
+          if (typeof data.name === 'string') {
+            const name = data.name.replace(/\s+/g, ' ').trim();
+            if (!name || name.length > 80) {
+              throw new APIError('BAD_REQUEST', { message: 'Names must be 1–80 characters.' });
+            }
+            return { data: { ...data, name } };
+          }
+          return { data };
+        },
+      },
       create: {
         async before(user) {
           if (googleEnabled && allowedDomains.length > 0 && !devLoginEnabled) {

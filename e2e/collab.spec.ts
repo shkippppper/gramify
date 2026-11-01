@@ -192,3 +192,28 @@ test('changing a member’s role mid-session keeps everyone in sync', async ({ b
   await typeAtEnd(grace, '\n    V --> W[Grace again]');
   await expectEditorToContain(ada, 'W[Grace again]');
 });
+
+test('people can change their display name and others see it live', async ({ browser }) => {
+  const ada = await userPage(browser, 'Ada Lovelace');
+  const grace = await userPage(browser, 'Grace Hopper');
+  await ada.getByRole('button', { name: 'New diagram' }).first().click();
+  await ada.waitForURL(/\/d\//);
+  await shareWith(ada, grace);
+  await grace.goto(ada.url());
+  await expect(grace.getByRole('button', { name: 'Follow Ada Lovelace' })).toBeVisible();
+
+  await ada.getByRole('button', { name: 'Account menu' }).click();
+  await ada.getByRole('button', { name: 'Edit display name' }).click();
+  await ada.getByLabel('Display name').fill('Ada Byron');
+  await ada.getByLabel('Display name').press('Enter');
+  await expect(ada.getByText('Name updated')).toBeVisible();
+
+  // Grace sees the new name on Ada's presence without anyone reloading.
+  await expect(grace.getByRole('button', { name: 'Follow Ada Byron' })).toBeVisible({
+    timeout: 15_000,
+  });
+  // And it sticks after a reload.
+  await ada.reload();
+  await ada.getByRole('button', { name: 'Account menu' }).click();
+  await expect(ada.getByRole('menu').getByText('Ada Byron', { exact: true })).toBeVisible();
+});

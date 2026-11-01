@@ -73,9 +73,16 @@ export function useCollab(
     provider.on('status', ({ status }: { status: CollabStatus }) =>
       setState((s) => ({ ...s, status })),
     );
-    provider.on('synced', ({ state: synced }: { state: boolean }) =>
-      setState((s) => ({ ...s, synced })),
-    );
+    provider.on('synced', ({ state: synced }: { state: boolean }) => {
+      setState((s) => ({ ...s, synced }));
+      // After any (re)connect, re-announce our presence with a fresh clock: the server
+      // dropped our state when the old socket closed and ignores a resend of the same clock,
+      // which would leave us invisible to others until we next move the pointer.
+      if (synced) {
+        const local = awareness.getLocalState();
+        if (local) awareness.setLocalState({ ...local });
+      }
+    });
     provider.on('unsyncedChanges', ({ number }: { number: number }) => {
       unsynced = number;
       setState((s) => ({ ...s, unsynced: number }));
@@ -103,9 +110,17 @@ export function useCollab(
       awareness.setLocalState(null);
     };
     window.addEventListener('beforeunload', onUnload);
+    // After a display-name change, reconnect so the server stamps the new name on our presence.
+    const onIdentity = () => {
+      // Drop just the socket; the provider's auto-reconnect re-authenticates with the
+      // refreshed session (disconnect()+connect() races: connect() sees the socket still open).
+      provider.configuration.websocketProvider.webSocket?.close();
+    };
+    window.addEventListener('tp:identity-changed', onIdentity);
 
     return () => {
       window.removeEventListener('beforeunload', onUnload);
+      window.removeEventListener('tp:identity-changed', onIdentity);
       awareness.setLocalState(null);
       provider.destroy();
       doc.destroy();
