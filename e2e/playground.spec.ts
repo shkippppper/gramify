@@ -43,3 +43,21 @@ test('exports PNG and SVG', async ({ page }) => {
   ]);
   expect(svg.suggestedFilename()).toMatch(/\.svg$/);
 });
+
+test('clicking a diagram element jumps to and selects its code', async ({ page }) => {
+  await page.goto('/play');
+  await expect(page.locator('[data-testid=diagram] svg')).toBeVisible();
+  await page.locator('[data-testid=diagram] svg').getByText('Laptop', { exact: true }).click();
+  await expect(page.locator('.tp-flash-line')).toHaveCount(1);
+  // The label is selected, so typing replaces it.
+  await page.keyboard.type('Notebook');
+  await expect
+    .poll(async () =>
+      ((await page.locator('[data-testid=code-editor] .view-lines').textContent()) ?? '').replace(
+        / /g,
+        ' ',
+      ),
+    )
+    .toContain('D[Notebook]');
+  await expect(page.locator('[data-testid=diagram] svg')).toContainText('Notebook');
+});

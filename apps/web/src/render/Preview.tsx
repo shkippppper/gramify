@@ -56,6 +56,8 @@ interface Props {
   onUserView?: (view: SharedView) => void;
   onPointer?: (p: { x: number; y: number } | null) => void;
   overlay?: (api: PreviewApi) => ReactNode;
+  /** Click (not drag) on a diagram element: used to jump to its code. */
+  onElementClick?: (target: Element, svg: SVGSVGElement) => void;
   /** Hide toolbars (embed / view mode). */
   chrome?: boolean;
 }
@@ -73,6 +75,7 @@ export function Preview({
   onUserView,
   onPointer,
   overlay,
+  onElementClick,
   chrome = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -298,6 +301,19 @@ export function Preview({
   const onPointerRef = useRef(onPointer);
   onPointerRef.current = onPointer;
   const lastSent = useRef(0);
+  const downAt = useRef<{ x: number; y: number } | null>(null);
+  const onElementClickRef = useRef(onElementClick);
+  onElementClickRef.current = onElementClick;
+
+  /** Briefly outline the shape that was clicked. */
+  const pick = (target: Element) => {
+    const shape =
+      target.closest(
+        'g.node, g.edgeLabel, g.cluster, g.actor, rect.task, g.architecture-service, g',
+      ) ?? target;
+    shape.classList.add('tp-picked');
+    setTimeout(() => shape.classList.remove('tp-picked'), 1200);
+  };
 
   return (
     <div
@@ -315,6 +331,27 @@ export function Preview({
         onPointerRef.current(toNormalized(e.clientX, e.clientY));
       }}
       onPointerLeave={() => onPointerRef.current?.(null)}
+      onPointerDown={(e) => {
+        downAt.current = { x: e.clientX, y: e.clientY };
+      }}
+      onClick={(e) => {
+        const handler = onElementClickRef.current;
+        const svgEl = svgElRef.current;
+        const start = downAt.current;
+        downAt.current = null;
+        if (!handler || !svgEl || !start) return;
+        // A drag (pan) also ends in a click event; only treat near-stationary clicks as picks.
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) return;
+        const target = e.target as Element;
+        if (
+          !svgEl.contains(target) ||
+          target === svgEl ||
+          target.classList.contains('svg-pan-zoom_viewport')
+        )
+          return;
+        pick(target);
+        handler(target, svgEl);
+      }}
     >
       <div
         ref={hostRef}

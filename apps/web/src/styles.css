@@ -106,3 +106,33 @@ body {
   letter-spacing: -0.01em;
   color: var(--tp-wordmark);
 }
+
+/* Click-to-code: shapes look clickable, the picked shape glows briefly, and the
+   matching code flashes in the editor. */
+.tp-preview
+  svg
+  :is(
+    g.node,
+    g.edgeLabel,
+    g.cluster,
+    .actor,
+    .messageText,
+    .task,
+    .taskText,
+    .pieCircle,
+    .legend,
+    text
+  ) {
+  cursor: pointer;
+}
+.tp-picked {
+  filter: drop-shadow(0 0 3px var(--tp-accent)) drop-shadow(0 0 6px var(--tp-accent));
+  transition: filter 150ms;
+}
+.tp-flash-line {
+  background: color-mix(in srgb, var(--tp-accent) 12%, transparent);
+}
+.tp-flash-token {
+  background: color-mix(in srgb, var(--tp-accent) 35%, transparent);
+  border-radius: 2px;
+}

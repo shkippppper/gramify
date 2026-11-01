@@ -20,7 +20,9 @@ import { Actions } from './Actions';
 import { CodeEditor, type EditorTab } from './CodeEditor';
 import { ErrorBar } from './ErrorBar';
 import { Samples } from './Samples';
-import type { monaco } from './monaco';
+import { monaco as monacoApi, type monaco } from './monaco';
+import { candidatesFromElement, locateInCode, type CodeRange } from '../render/locate';
+import { toast } from 'sonner';
 
 interface Props {
   session: DiagramSession;
@@ -69,6 +71,61 @@ export function EditorWorkspace(props: Props) {
   const [mobileView, setMobileView] = useState<'edit' | 'view'>('edit');
   const [pendingSample, setPendingSample] = useState<{ code: string; title: string } | null>(null);
   const isMobile = useIsMobile();
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
+  const mobileViewRef = useRef(mobileView);
+  mobileViewRef.current = mobileView;
+
+  // ---- click a diagram element → jump to its code ----
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const flashRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const propsOnEditorReady = props.onEditorReady;
+  const onEditorReady = useCallback(
+    (ed: monaco.editor.IStandaloneCodeEditor | null) => {
+      editorRef.current = ed;
+      propsOnEditorReady?.(ed);
+    },
+    [propsOnEditorReady],
+  );
+  const revealRange = useCallback((r: CodeRange) => {
+    const ed = editorRef.current;
+    const model = ed?.getModel();
+    if (!ed || !model || model.getLanguageId() !== 'mermaid' || r.line > model.getLineCount())
+      return;
+    const range = new monacoApi.Range(r.line, r.startColumn, r.line, r.endColumn);
+    ed.setSelection(range);
+    ed.revealRangeInCenterIfOutsideViewport(range, monacoApi.editor.ScrollType.Smooth);
+    flashRef.current?.clear();
+    flashRef.current = ed.createDecorationsCollection([
+      {
+        range: new monacoApi.Range(r.line, 1, r.line, 1),
+        options: { isWholeLine: true, className: 'tp-flash-line' },
+      },
+      { range, options: { inlineClassName: 'tp-flash-token' } },
+    ]);
+    const flash = flashRef.current;
+    setTimeout(() => flash.clear(), 1800);
+    ed.focus();
+  }, []);
+  const jumpToCode = useCallback(
+    (target: Element, svg: SVGSVGElement) => {
+      const range = locateInCode(session.code.toString(), candidatesFromElement(target, svg));
+      if (!range) {
+        toast.message('Couldn’t find that element in the code', { duration: 2000 });
+        return;
+      }
+      const needsSwitch =
+        tabRef.current !== 'code' || (isMobileRef.current && mobileViewRef.current !== 'edit');
+      setTab('code');
+      setMobileView('edit');
+      // Let the editor swap models / become visible before revealing.
+      if (needsSwitch) setTimeout(() => revealRange(range), 60);
+      else revealRange(range);
+    },
+    [session, revealRange],
+  );
 
   const innerPreviewRef = useRef<PreviewHandle>(null);
   const setPreviewRef = useCallback(
@@ -130,7 +187,7 @@ export function EditorWorkspace(props: Props) {
           dark={dark}
           codeMarker={codeMarker}
           configMarker={configMarker}
-          onReady={props.onEditorReady}
+          onReady={onEditorReady}
         />
         {props.editorOverlay}
       </div>
@@ -177,6 +234,7 @@ export function EditorWorkspace(props: Props) {
       onPointer={props.onPointer}
       onUserView={props.onUserView}
       overlay={props.overlay}
+      onElementClick={previewOverride ? undefined : jumpToCode}
     />
   );
 
