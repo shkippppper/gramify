@@ -11,7 +11,7 @@ const NS = 'http://www.w3.org/2000/svg';
 /** Space above and below the boxes inside the band, in px. */
 const PAD = 6;
 /** The copies are never drawn taller than this, so a deep zoom doesn't cover the screen. */
-const MAX_BOX_PX = 56;
+const MAX_BOX_PX = 96;
 
 export interface StickyActors {
   /**
