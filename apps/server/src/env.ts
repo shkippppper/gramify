@@ -19,7 +19,7 @@ const schema = z.object({
   /** Shown on the privacy policy and terms pages. */
   CONTACT_EMAIL: z.string().default(''),
   /** Boards each person may own (including their trash). 0 = unlimited. */
-  MAX_BOARDS_PER_USER: z.coerce.number().int().min(0).default(5),
+  MAX_BOARDS_PER_USER: z.coerce.number().int().min(0).default(10),
   /** Directory with the built SPA (apps/web/dist) to serve in production. */
   STATIC_DIR: z.string().optional(),
 });
