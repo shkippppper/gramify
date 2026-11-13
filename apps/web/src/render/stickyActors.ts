@@ -126,8 +126,9 @@ export function mountStickyActors(src: SVGSVGElement, host: HTMLElement): Sticky
         );
       }
       host.style.height = `${height}px`;
-      // Show once the real boxes are half off-screen, until the bottom boxes reach the band.
-      const show = (top + bandH / 2) * z + f < 0 && end * z + f > height;
+      // Show as soon as the real boxes start leaving the top of the view, until the bottom boxes
+      // reach the band.
+      const show = top * z + f < 0 && end * z + f > height;
       host.dataset.show = String(show);
     },
   };
