@@ -25,7 +25,7 @@ export interface TourStep {
 export type TourName = 'library' | 'editor';
 
 /** Bump when steps are added; equals the highest `since` below. */
-export const TOUR_VERSION = 1;
+export const TOUR_VERSION = 2;
 
 export const TOURS: Record<TourName, TourStep[]> = {
   library: [
@@ -113,6 +113,13 @@ export const TOURS: Record<TourName, TourStep[]> = {
       title: 'Live preview',
       body: 'Drag to pan and scroll to zoom. Double-click any shape to jump to its code. While you type, the shapes on your current line are outlined here.',
       since: 1,
+    },
+    {
+      id: 'sticky-participants',
+      target: 'preview',
+      title: 'Participants stay in view',
+      body: 'In a long sequence diagram, the participant boxes stick to the top of the preview as you scroll down, each one above its own lifeline, so you always know whose line you are on.',
+      since: 2,
     },
     {
       id: 'view-tools',

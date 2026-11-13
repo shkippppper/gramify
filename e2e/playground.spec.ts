@@ -72,3 +72,33 @@ test('the cursor line highlights its shapes in the diagram', async ({ page }) =>
   await expect(lit.filter({ hasText: 'Let me think' })).toHaveCount(1);
   await expect(lit.filter({ hasText: 'Laptop' })).toHaveCount(0);
 });
+
+test('sequence diagram participants stay pinned to the top while scrolling down', async ({
+  page,
+}) => {
+  await page.goto('/play');
+  await page.locator('[data-testid=code-editor] .view-lines').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Delete');
+  let code = 'sequenceDiagram\nparticipant A as Web app\nparticipant B as Payments API\n';
+  for (let i = 0; i < 15; i++) code += `A->>B: request ${i}\nB-->>A: reply ${i}\n`;
+  await page.keyboard.insertText(code);
+  await expect(page.locator('[data-testid=diagram] svg')).toContainText('reply 14');
+
+  const sticky = page.getByTestId('sticky-actors');
+  await expect(sticky).toHaveAttribute('data-show', 'false');
+
+  // Zoom in, then drag the diagram up: the participants follow.
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Zoom in' }).click();
+  const box = (await page.getByTestId('preview').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 8 });
+  await page.mouse.up();
+  await expect(sticky).toHaveAttribute('data-show', 'true');
+  await expect(sticky).toContainText('Payments API');
+
+  // Back at the top, the real boxes are visible and the pinned copy hides.
+  await page.getByRole('button', { name: 'Reset view' }).click();
+  await expect(sticky).toHaveAttribute('data-show', 'false');
+});

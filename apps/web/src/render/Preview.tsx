@@ -17,6 +17,7 @@ import { throttleTrailing } from '../lib/throttle';
 import { elementsForLine } from './locate';
 import { MERMAID_VERSION } from './mermaid';
 import { sketchSvg } from './rough';
+import { mountStickyActors, type StickyActors } from './stickyActors';
 
 type PanZoom = SvgPanZoom.Instance;
 
@@ -292,6 +293,21 @@ export function Preview({
       el.classList.add('tp-hl');
   }, [highlight, placed]);
 
+  // Sequence diagrams: keep the participants pinned to the top while scrolling down.
+  const stickyHostRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<StickyActors | null>(null);
+  const updateSticky = useCallback(() => {
+    const pz = pzRef.current;
+    if (pz) stickyRef.current?.update(pz.getPan(), pz.getSizes().realZoom);
+  }, []);
+  useEffect(() => {
+    const host = stickyHostRef.current;
+    const svgEl = svgElRef.current;
+    stickyRef.current = host && svgEl ? mountStickyActors(svgEl, host) : null;
+    updateSticky();
+  }, [placed, updateSticky]);
+  useEffect(updateSticky, [version, updateSticky]);
+
   // Keep the diagram fitted on resize until the user pans/zooms.
   useEffect(() => {
     const el = containerRef.current;
@@ -391,6 +407,13 @@ export function Preview({
         ref={hostRef}
         className={clsx('absolute inset-0 transition-opacity', stale && 'opacity-50')}
         data-testid="diagram"
+      />
+      <div
+        ref={stickyHostRef}
+        aria-hidden
+        data-show="false"
+        data-testid="sticky-actors"
+        className="pointer-events-none absolute inset-x-0 top-0 border-b border-border bg-surface/85 shadow-sm backdrop-blur-sm transition-[opacity,translate] duration-200 data-[show=false]:-translate-y-1 data-[show=false]:opacity-0"
       />
       {!svg && !stale && (
         <div className="absolute inset-0 grid place-items-center text-sm text-muted">
