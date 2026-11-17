@@ -21,6 +21,12 @@ import { mountStickyActors, type StickyActors } from './stickyActors';
 
 type PanZoom = SvgPanZoom.Instance;
 
+/** Zoom limits, relative to the diagram fitted to the preview. */
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 30;
+/** However big the diagram, zooming in can always reach this many times its actual size. */
+const MAX_REAL_ZOOM = 8;
+
 /** A shareable description of what part of the diagram is on screen. */
 export interface SharedView {
   /** Center of the visible area in normalized diagram coords (0..1). */
@@ -90,6 +96,7 @@ export function Preview({
   const containerRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const pzRef = useRef<PanZoom | null>(null);
+  const maxZoomRef = useRef(MAX_ZOOM);
   const svgElRef = useRef<SVGSVGElement | null>(null);
   const exportRef = useRef<string | null>(null);
   /** Original viewBox of the diagram (x, y, w, h) for coordinate normalization. */
@@ -145,7 +152,7 @@ export function Preview({
       programmatic.current = true;
       const { realZoom } = pz.getSizes();
       const base = realZoom / pz.getZoom();
-      pz.zoom(Math.min(12, Math.max(0.2, view.scale / base)));
+      pz.zoom(Math.min(maxZoomRef.current, Math.max(MIN_ZOOM, view.scale / base)));
       const z = pz.getSizes().realZoom;
       const rect = host.getBoundingClientRect();
       const localX = box[0] + view.cx * box[2];
@@ -214,8 +221,8 @@ export function Preview({
         dblClickZoomEnabled: false,
         fit: true,
         center: true,
-        minZoom: 0.2,
-        maxZoom: 12,
+        minZoom: MIN_ZOOM,
+        maxZoom: MAX_ZOOM,
         zoomScaleSensitivity: 0.25,
         onPan: () => {
           if (!programmatic.current) {
@@ -266,6 +273,11 @@ export function Preview({
         },
       });
       pzRef.current = pz;
+      // Zoom limits are relative to the fitted size, so a big diagram (fitted small) would
+      // otherwise stop well short of readable. Always allow up to MAX_REAL_ZOOM× actual size.
+      const fitZoom = pz.getSizes().realZoom / pz.getZoom();
+      maxZoomRef.current = Math.max(MAX_ZOOM, MAX_REAL_ZOOM / fitZoom);
+      pz.setMaxZoom(maxZoomRef.current);
       if (keep) setView(keep);
       else fit();
       setPlaced((n) => n + 1);

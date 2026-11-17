@@ -20,7 +20,7 @@ Source: github.com/mermaid-js/mermaid-live-editor (MIT). Checked at app version 
   - `mermaid.initialize(config)` then `mermaid.render`, with ZenUML and tidy-tree layout registered.
   - Adaptive debounce: renders slower than 150 ms switch to a 1000 ms debounce.
   - A promise queue skips renders when nothing has changed.
-- **Pan/zoom:** svg-pan-zoom 3.6.2 plus hammerjs. Fit and center, zoom 0.2–12, no double-click zoom. Reset is reset() then zoom(0.875). Pan and zoom are saved in state.
+- **Pan/zoom:** svg-pan-zoom 3.6.2 plus hammerjs. Fit and center, zoom 0.2–30 (at least 8× actual size), no double-click zoom. Reset is reset() then zoom(0.875). Pan and zoom are saved in state.
 - **Hand-drawn:** svg2roughjs post-processing (the `rough` flag), separate from mermaid's `look: handDrawn`. A dot grid (30 px) can be turned on.
 - **Theme:** if the config doesn't set a theme, the diagram theme follows the site's dark mode (default ↔ dark, neo ↔ neo-dark).
 - **Samples:** `@mermaid-js/examples` (34 families, several variants each, one marked default).

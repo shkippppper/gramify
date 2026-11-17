@@ -105,7 +105,7 @@ Folders are personal (`folder.created_by`).
   - **Actions:** PNG (Auto/Width/Height plus size), SVG, Copy image, Copy Markdown, and Download `.mmd`
 - **Preview:**
   - Render queue: skip a render if nothing changed; switch to a 1 s debounce if a render takes more than 150 ms
-  - svg-pan-zoom with fit/center, zoom from 0.2 to 12, touch support, and toolbar buttons Reset, Zoom ±, Full screen (`/d/:id/view`)
+  - svg-pan-zoom with fit/center, zoom from 0.2 to 30 (and always up to 8× actual size), touch support, and toolbar buttons Reset, Zoom ±, Full screen (`/d/:id/view`)
   - Bottom toolbar: Hand-drawn toggle (svg2roughjs), Grid toggle, mermaid version label
   - **Multiplayer overlay:** remote pointers with name labels, drawn in diagram coordinates
 - **Theme:** light, dark or system. When the diagram theme is not set explicitly in the config, the diagram theme follows the site theme.

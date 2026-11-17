@@ -102,3 +102,24 @@ test('sequence diagram participants stay pinned to the top while scrolling down'
   await page.getByRole('button', { name: 'Reset view' }).click();
   await expect(sticky).toHaveAttribute('data-show', 'false');
 });
+
+test('a long diagram can still be zoomed in well past its actual size', async ({ page }) => {
+  await page.goto('/play');
+  await page.locator('[data-testid=code-editor] .view-lines').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Delete');
+  let code = 'sequenceDiagram\nparticipant A as Web app\nparticipant B as Payments API\n';
+  for (let i = 0; i < 60; i++) code += `A->>B: request ${i}\nB-->>A: reply ${i}\n`;
+  await page.keyboard.insertText(code);
+  await expect(page.locator('[data-testid=diagram] svg')).toContainText('reply 59');
+
+  const scale = () =>
+    page
+      .locator('[data-testid=diagram] .svg-pan-zoom_viewport')
+      .evaluate((g) => (g as SVGGElement).getCTM()!.a);
+  // Fitted, a diagram this tall is drawn well below its actual size.
+  expect(await scale()).toBeLessThan(0.5);
+  const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+  for (let i = 0; i < 40; i++) await zoomIn.click();
+  await expect.poll(scale).toBeGreaterThan(6);
+});
