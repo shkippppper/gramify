@@ -16,6 +16,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.5.1',
+    date: '2026-11-24',
+    title: 'Mindmap and Kanban previews',
+    changes: [
+      'Mindmap and Kanban boards and samples show their preview again, and mindmaps export to SVG and PNG correctly.',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-24',
     title: 'Motion and illustrations',

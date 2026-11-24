@@ -13,9 +13,24 @@ export function svgSize(svg: SVGSVGElement): { width: number; height: number } {
   return { width: box.width || 800, height: box.height || 600 };
 }
 
+/**
+ * Mermaid's markup can hold label HTML that isn't valid XML (unclosed `<br>`, `<p>` inside
+ * `<p>`, as in mindmaps). Browsers forgive that inside a page but refuse to load such an SVG as
+ * an image or file. Parse it the forgiving (HTML) way and write it back out as proper XML.
+ */
+export function wellFormedSvg(markup: string): string {
+  const doc = new DOMParser().parseFromString(markup, 'text/html');
+  const svg = doc.querySelector('svg');
+  if (!svg) return markup;
+  // Parsed as HTML these are plain attributes; the serializer declares namespaces itself, and
+  // keeping them would declare `xmlns` twice on the same element.
+  for (const el of [svg, ...svg.querySelectorAll('[xmlns]')]) el.removeAttribute('xmlns');
+  return new XMLSerializer().serializeToString(svg);
+}
+
 /** Standalone SVG markup suitable for download (explicit size, xmlns, background). */
 export function standaloneSvg(svgMarkup: string, background: string | null) {
-  const doc = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
+  const doc = new DOMParser().parseFromString(wellFormedSvg(svgMarkup), 'image/svg+xml');
   const svg = doc.documentElement as unknown as SVGSVGElement;
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');

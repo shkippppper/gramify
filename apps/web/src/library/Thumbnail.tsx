@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { wellFormedSvg } from '../render/export';
 import { parseConfig, renderDiagram } from '../render/mermaid';
 
 const cache = new Map<string, string | null>();
@@ -38,7 +39,9 @@ export function Thumbnail({
     let cancelled = false;
     const cfg = parseConfig(config);
     renderDiagram(code, cfg.ok ? cfg.config : {}, { dark: false }).then((res) => {
-      const url = res.ok ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(res.svg)}` : null;
+      const url = res.ok
+        ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(wellFormedSvg(res.svg))}`
+        : null;
       // A failed load after a redeploy isn't the diagram's fault: don't remember it.
       if (res.ok || !res.staleBuild) cache.set(key, url);
       if (!res.ok && res.staleBuild) {
