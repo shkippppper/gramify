@@ -17,7 +17,16 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Avatar, Button, Dialog, IconButton, Input, Menu, Spinner } from '../components/ui';
+import {
+  Avatar,
+  Button,
+  Dialog,
+  IconButton,
+  Input,
+  Menu,
+  Spinner,
+  stagger,
+} from '../components/ui';
 import { api } from '../lib/api';
 import { formatDateTime, timeAgo } from '../lib/time';
 
@@ -226,12 +235,12 @@ export function HistoryPanel({
             or save one now.
           </p>
         ) : (
-          groups.map((g) => (
-            <div key={g.day} className="mb-3">
+          groups.map((g, gi) => (
+            <div key={g.day} className="tp-stagger mb-3">
               <h3 className="px-2 pb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">
                 {g.day}
               </h3>
-              {g.items.map((v) => {
+              {g.items.map((v, vi) => {
                 const active = previewing?.id === v.id;
                 const people = v.contributors.length
                   ? v.contributors
@@ -241,8 +250,9 @@ export function HistoryPanel({
                 return (
                   <div
                     key={v.id}
+                    style={stagger(gi * 4 + vi)}
                     className={clsx(
-                      'group rounded-lg border',
+                      'group rounded-lg border transition-colors',
                       active
                         ? 'border-accent bg-accent/5'
                         : 'border-transparent hover:bg-surface-2',

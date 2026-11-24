@@ -19,6 +19,7 @@ import { RemoteCursorStyles } from '../collab/RemoteCursorStyles';
 import { useYMapValue, useYText, type DiagramSession } from '../collab/session';
 import { useCollab, type CollabStatus } from '../collab/useCollab';
 import { ThemeToggle, TopBar } from '../components/TopBar';
+import { Illustration } from '../components/Illustration';
 import { ShareDialog } from '../components/ShareDialog';
 import { UserMenu } from '../components/UserMenu';
 import { Button, Menu, Spinner } from '../components/ui';
@@ -229,7 +230,11 @@ export function DiagramPage() {
   if (summary.isError || summary.data?.deletedAt) {
     const notFound = summary.error instanceof ApiError && summary.error.status === 404;
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+      <div className="tp-rise flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <Illustration
+          className="w-48"
+          name={summary.data?.deletedAt ? 'trash' : notFound ? 'missing' : 'error'}
+        />
         <p className="text-sm text-muted">
           {summary.data?.deletedAt
             ? 'This diagram is in the trash.'
@@ -249,7 +254,10 @@ export function DiagramPage() {
   const d = summary.data!;
   if (collab.error) {
     return (
-      <div className="grid h-full place-items-center p-6 text-sm text-danger">{collab.error}</div>
+      <div className="tp-rise flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <Illustration name="error" className="w-48" />
+        <p className="text-sm text-danger">{collab.error}</p>
+      </div>
     );
   }
   if (!session || !collab.synced) {

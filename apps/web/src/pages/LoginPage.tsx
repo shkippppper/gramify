@@ -3,6 +3,7 @@ import { BRAND } from '@gramify/shared';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { BrandIcon } from '../components/BrandIcon';
+import { Illustration } from '../components/Illustration';
 import { ThemeToggle } from '../components/TopBar';
 import { Button, Input, Spinner } from '../components/ui';
 import { api } from '../lib/api';
@@ -74,98 +75,103 @@ export function LoginPage() {
       <div className="absolute top-3 right-3">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <BrandIcon className="size-16" />
-          <div>
-            <h1 className="tp-wordmark text-3xl">{BRAND.name}</h1>
-            <p className="text-sm text-muted">{BRAND.tagline}</p>
-          </div>
+      <div className="tp-rise w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <div className="border-b border-border bg-surface-2">
+          <Illustration name="welcome" framed className="mx-auto w-full max-w-xs" />
         </div>
-        {config.data?.google && (
-          <Button
-            variant="secondary"
-            className="h-10 w-full"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError(null);
-              const res = await authClient.signIn.social({
-                provider: 'google',
-                callbackURL: next,
-                errorCallbackURL: `/login?next=${encodeURIComponent(next)}`,
-              });
-              if (res.error) {
-                setError(
-                  res.error.status === 429
-                    ? 'Too many sign-in attempts. Wait a few seconds and try again.'
-                    : (res.error.message ?? 'Sign-in failed'),
-                );
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? <Spinner /> : <GoogleIcon />} Continue with Google
-          </Button>
-        )}
-        {config.data?.devLogin && (
-          <form
-            className="mt-4 space-y-2 border-t border-dashed border-border pt-4"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setError(null);
-              try {
-                await api.devSignIn(email.trim(), name.trim());
-                await qc.invalidateQueries({ queryKey: ['me'] });
-                navigate(next, { replace: true });
-              } catch (err) {
-                setError((err as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <p className="text-xs font-medium text-muted">Development sign-in</p>
-            <Input
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full"
-              aria-label="Name"
-            />
-            <Input
-              placeholder="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full"
-              aria-label="Email"
-            />
-            <Button type="submit" variant="primary" className="w-full" disabled={busy}>
-              Sign in
+        <div className="p-8 pt-6">
+          <div className="mb-6 flex flex-col items-center gap-3 text-center">
+            <BrandIcon className="size-12" />
+            <div>
+              <h1 className="tp-wordmark text-3xl">{BRAND.name}</h1>
+              <p className="text-sm text-muted">{BRAND.tagline}</p>
+            </div>
+          </div>
+          {config.data?.google && (
+            <Button
+              variant="secondary"
+              className="h-10 w-full"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                const res = await authClient.signIn.social({
+                  provider: 'google',
+                  callbackURL: next,
+                  errorCallbackURL: `/login?next=${encodeURIComponent(next)}`,
+                });
+                if (res.error) {
+                  setError(
+                    res.error.status === 429
+                      ? 'Too many sign-in attempts. Wait a few seconds and try again.'
+                      : (res.error.message ?? 'Sign-in failed'),
+                  );
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? <Spinner /> : <GoogleIcon />} Continue with Google
             </Button>
-          </form>
-        )}
-        {!config.data?.google && !config.data?.devLogin && (
-          <p className="text-center text-sm text-muted">
-            Sign-in is not configured. Set the Google OAuth variables on the server.
+          )}
+          {config.data?.devLogin && (
+            <form
+              className="mt-4 space-y-2 border-t border-dashed border-border pt-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                setError(null);
+                try {
+                  await api.devSignIn(email.trim(), name.trim());
+                  await qc.invalidateQueries({ queryKey: ['me'] });
+                  navigate(next, { replace: true });
+                } catch (err) {
+                  setError((err as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <p className="text-xs font-medium text-muted">Development sign-in</p>
+              <Input
+                placeholder="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full"
+                aria-label="Name"
+              />
+              <Input
+                placeholder="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full"
+                aria-label="Email"
+              />
+              <Button type="submit" variant="primary" className="w-full" disabled={busy}>
+                Sign in
+              </Button>
+            </form>
+          )}
+          {!config.data?.google && !config.data?.devLogin && (
+            <p className="text-center text-sm text-muted">
+              Sign-in is not configured. Set the Google OAuth variables on the server.
+            </p>
+          )}
+          {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
+          <p className="mt-6 text-center text-xs text-muted">
+            By continuing you agree to the{' '}
+            <Link to="/terms" className="underline hover:text-accent">
+              terms
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="underline hover:text-accent">
+              privacy policy
+            </Link>
+            .
           </p>
-        )}
-        {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
-        <p className="mt-6 text-center text-xs text-muted">
-          By continuing you agree to the{' '}
-          <Link to="/terms" className="underline hover:text-accent">
-            terms
-          </Link>{' '}
-          and{' '}
-          <Link to="/privacy" className="underline hover:text-accent">
-            privacy policy
-          </Link>
-          .
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useMe } from '../lib/auth';
-import { Avatar, Button, Dialog, IconButton, Input, Spinner } from './ui';
+import { Avatar, Button, Dialog, IconButton, Input, Spinner, stagger } from './ui';
 
 const ROLE_LABEL: Record<DiagramRole, string> = {
   owner: 'Owner',
@@ -145,7 +145,7 @@ export function ShareDialog({
       <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
         People with access
       </h3>
-      <ul className="max-h-72 space-y-1 overflow-y-auto" data-testid="member-list">
+      <ul className="tp-stagger max-h-72 space-y-1 overflow-y-auto" data-testid="member-list">
         {diagram.owner && (
           <li className="flex items-center gap-3 rounded-md px-1 py-1.5">
             <Avatar
@@ -169,11 +169,12 @@ export function ShareDialog({
             <Spinner />
           </li>
         ) : (
-          members.data?.map((m) => {
+          members.data?.map((m, i) => {
             const isMe = m.email === me.data?.email.toLowerCase();
             return (
               <li
                 key={m.email}
+                style={stagger(i + 1)}
                 className="flex items-center gap-3 rounded-md px-1 py-1.5"
                 data-testid="member"
               >

@@ -13,7 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router';
-import { Avatar, IconButton, Menu, type MenuItem } from '../components/ui';
+import { Avatar, IconButton, Menu, stagger, type MenuItem } from '../components/ui';
 import { timeAgo } from '../lib/time';
 import { DND_TYPE } from './Sidebar';
 import { Thumbnail } from './Thumbnail';
@@ -99,6 +99,7 @@ export function DiagramCard({
   present,
   actions,
   layout,
+  index = 0,
 }: {
   d: DiagramSummary;
   /** The board's folder, when it should be shown (not when already inside it). */
@@ -106,6 +107,8 @@ export function DiagramCard({
   present: PublicUser[];
   actions: CardActions;
   layout: 'grid' | 'list';
+  /** Position in the list, for the cascading rise-in. */
+  index?: number;
 }) {
   const href = d.deletedAt ? undefined : `/d/${d.id}`;
   const shared = d.role !== 'owner';
@@ -198,14 +201,15 @@ export function DiagramCard({
   if (layout === 'list') {
     return (
       <div
-        className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 hover:border-border hover:bg-surface"
+        className="group flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 transition-colors hover:border-border hover:bg-surface"
+        style={stagger(index)}
         {...dragProps}
         data-testid="diagram-card"
       >
         <Thumbnail
           code={d.code}
           config={d.config}
-          className="h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-white p-1"
+          className="tp-bob h-10 w-16 shrink-0 overflow-hidden rounded border border-border bg-white p-1"
         />
         <div className="flex min-w-0 flex-1">{title}</div>
         <Present users={present} />
@@ -221,18 +225,19 @@ export function DiagramCard({
     'relative block aspect-[4/3] min-h-0 overflow-hidden rounded-t-xl border-b border-border bg-white p-3';
   return (
     <div
-      className="tp-fade group relative flex flex-col rounded-xl border border-border bg-surface transition-[box-shadow,transform,border-color] duration-200 focus-within:z-10 hover:z-10 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-lg"
+      className="group tp-lift relative flex flex-col rounded-xl border border-border bg-surface focus-within:z-10 hover:z-10"
+      style={stagger(index)}
       {...dragProps}
       data-testid="diagram-card"
       data-tour="board-card"
     >
       {href ? (
         <Link to={href} className={frame} tabIndex={-1} aria-hidden>
-          <Thumbnail code={d.code} config={d.config} className="absolute inset-3" />
+          <Thumbnail code={d.code} config={d.config} className="tp-bob absolute inset-3" />
         </Link>
       ) : (
         <div className={clsx(frame, 'opacity-60')}>
-          <Thumbnail code={d.code} config={d.config} className="absolute inset-3" />
+          <Thumbnail code={d.code} config={d.config} className="tp-bob absolute inset-3" />
         </div>
       )}
       <div className="flex items-center gap-2 px-3 py-2">

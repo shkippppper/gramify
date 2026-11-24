@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useState } from 'react';
-import { Dialog } from '../components/ui';
+import { Dialog, stagger } from '../components/ui';
 import { APP_VERSION, BUILD_SHA, CHANGELOG } from './changelog';
 
 const SEEN_KEY = 'tp-seen-version';
@@ -69,9 +69,16 @@ export function VersionBadge({ className }: { className?: string }) {
             </>
           )}
         </p>
-        <ol className="max-h-[60vh] space-y-5 overflow-y-auto pr-1" data-testid="changelog">
+        <ol
+          className="tp-stagger max-h-[60vh] space-y-5 overflow-y-auto pr-1"
+          data-testid="changelog"
+        >
           {CHANGELOG.map((r, i) => (
-            <li key={r.version} className="relative border-l-2 border-border pl-4">
+            <li
+              key={r.version}
+              style={stagger(i)}
+              className="relative border-l-2 border-border pl-4"
+            >
               <span
                 className={clsx(
                   'absolute top-1 -left-[5px] size-2 rounded-full',

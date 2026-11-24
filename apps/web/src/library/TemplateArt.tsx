@@ -40,7 +40,7 @@ const line = { stroke: 'var(--tp-muted)', strokeWidth: 1.2, fill: 'none' } as co
 
 function EmptyArt() {
   return (
-    <g className="tp-art-float">
+    <g className="tp-bob">
       <rect
         x="50"
         y="22"
@@ -62,7 +62,7 @@ function EmptyArt() {
       />
       {/* A blinking text cursor: ready to type. */}
       <rect
-        className="tp-art-blink"
+        className="tp-blink"
         x="122"
         y="78"
         width="1.6"
@@ -85,7 +85,7 @@ function MermaidArt({ arrow }: { arrow: string }) {
   return (
     <>
       {/* Code on the left… */}
-      <g className="tp-art-float">
+      <g className="tp-bob">
         <rect
           x="12"
           y="20"
@@ -110,7 +110,7 @@ function MermaidArt({ arrow }: { arrow: string }) {
       </g>
       <path d="M88 60 H102" {...line} strokeWidth={1.6} markerEnd={`url(#${arrow})`} />
       {/* …becomes a diagram on the right. */}
-      <g className="tp-art-float tp-art-delay">
+      <g className="tp-bob tp-bob-1">
         <rect
           x="122"
           y="14"
@@ -149,7 +149,7 @@ function C4Art({ arrow }: { arrow: string }) {
   return (
     <>
       {/* A person… */}
-      <g className="tp-art-float">
+      <g className="tp-bob">
         <circle cx="62" cy="20" r="8" fill="#08427b" />
         <rect x="46" y="27" width="32" height="16" rx="8" fill="#08427b" />
         <rect x="54" y="33" width="16" height="2.5" rx="1.25" fill="#fff" opacity="0.8" />
@@ -166,7 +166,7 @@ function C4Art({ arrow }: { arrow: string }) {
         stroke="var(--tp-muted)"
         strokeDasharray="4 3"
       />
-      <g className="tp-art-float tp-art-delay">
+      <g className="tp-bob tp-bob-1">
         <rect x="26" y="68" width="44" height="24" rx="4" fill="#1168bd" />
         <rect x="33" y="76" width="30" height="3" rx="1.5" fill="#fff" opacity="0.85" />
         <rect x="37" y="82" width="22" height="2.5" rx="1.25" fill="#fff" opacity="0.5" />
@@ -177,7 +177,7 @@ function C4Art({ arrow }: { arrow: string }) {
       </g>
       {/* …which talks to outside systems. */}
       <path d="M116 80 H134" {...line} markerEnd={`url(#${arrow})`} />
-      <g className="tp-art-float tp-art-delay-2">
+      <g className="tp-bob tp-bob-2">
         <rect x="136" y="54" width="50" height="22" rx="4" fill="#8a8a8a" />
         <rect x="144" y="62" width="34" height="3" rx="1.5" fill="#fff" opacity="0.85" />
         <rect x="136" y="84" width="50" height="22" rx="4" fill="#8a8a8a" />
@@ -216,7 +216,7 @@ function BpmnArt({ arrow }: { arrow: string }) {
       <rect x="12.5" y="25" width="3" height="20" rx="1.5" fill="var(--tp-muted)" opacity="0.6" />
       <rect x="12.5" y="75" width="3" height="20" rx="1.5" fill="var(--tp-muted)" opacity="0.6" />
 
-      <g className="tp-art-float">
+      <g className="tp-bob">
         {/* start event → task */}
         <circle cx="36" cy="35" r="8" fill="#dcfce7" stroke="#16a34a" strokeWidth="1.6" />
         <path d="M44 35 H54" {...line} markerEnd={`url(#${arrow})`} />
@@ -232,7 +232,7 @@ function BpmnArt({ arrow }: { arrow: string }) {
         />
         <path d="M74 45 V73" {...line} markerEnd={`url(#${arrow})`} />
       </g>
-      <g className="tp-art-float tp-art-delay">
+      <g className="tp-bob tp-bob-1">
         {/* gateway (decision) in the second lane */}
         <path d="M74 74 L86 85 L74 96 L62 85 Z" fill="#fef9c3" stroke="#ca8a04" strokeWidth="1.3" />
         <path d="M86 85 H104" {...line} markerEnd={`url(#${arrow})`} />
@@ -248,7 +248,7 @@ function BpmnArt({ arrow }: { arrow: string }) {
         />
         <path d="M74 74 C 90 52, 120 40, 128 40" {...line} markerEnd={`url(#${arrow})`} />
       </g>
-      <g className="tp-art-float tp-art-delay-2">
+      <g className="tp-bob tp-bob-2">
         <rect
           x="130"
           y="28"

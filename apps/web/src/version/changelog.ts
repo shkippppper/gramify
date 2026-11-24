@@ -16,6 +16,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.5.0',
+    date: '2026-11-24',
+    title: 'Motion and illustrations',
+    changes: [
+      'The template picker’s animations now run across the app: board cards and samples lift on hover and their previews float, and lists, dialogs and release notes ease in one item after another.',
+      'New illustrations for empty boards, starred, recent, shared, trash, search with no results, missing boards and the sign-in page.',
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-11-24',
     title: 'Templates and release notes',

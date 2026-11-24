@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type CSSProperties,
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react';
@@ -218,7 +219,7 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
         className={clsx(
-          'w-full min-w-0 rounded-xl border border-border bg-surface shadow-xl',
+          'tp-rise w-full min-w-0 rounded-xl border border-border bg-surface shadow-xl',
           width,
         )}
         onMouseDown={(e) => e.stopPropagation()}
@@ -468,6 +469,9 @@ export function Avatar({
     </span>
   );
 }
+
+/** Inline style for the i-th child of a `.tp-stagger` list (its rise-in delay). */
+export const stagger = (i: number) => ({ '--i': i }) as CSSProperties;
 
 export function Spinner({ className }: { className?: string }) {
   return (

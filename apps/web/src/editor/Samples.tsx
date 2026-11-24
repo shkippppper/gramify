@@ -1,14 +1,15 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { stagger } from '../components/ui';
 import { SAMPLE_FAMILIES } from './samples';
 
 export function Samples({ onPick }: { onPick: (code: string, title: string) => void }) {
   const [openName, setOpenName] = useState<string | null>(null);
   return (
-    <div className="grid grid-cols-2 gap-1" data-testid="samples">
-      {SAMPLE_FAMILIES.map((fam) => (
-        <div key={fam.name} className="relative">
-          <div className="flex rounded-md border border-border bg-surface text-xs hover:border-accent/50">
+    <div className="tp-stagger grid grid-cols-2 gap-1" data-testid="samples">
+      {SAMPLE_FAMILIES.map((fam, i) => (
+        <div key={fam.name} className="relative" style={stagger(i)}>
+          <div className="tp-lift flex rounded-md border border-border bg-surface text-xs">
             <button
               type="button"
               className="min-w-0 flex-1 truncate px-2 py-1.5 text-left"
@@ -29,7 +30,7 @@ export function Samples({ onPick }: { onPick: (code: string, title: string) => v
             )}
           </div>
           {openName === fam.name && (
-            <div className="absolute z-30 mt-1 w-64 rounded-lg border border-border bg-surface p-1 shadow-lg">
+            <div className="tp-pop absolute z-30 mt-1 w-64 rounded-lg border border-border bg-surface p-1 shadow-lg">
               {fam.examples.map((ex) => (
                 <button
                   key={ex.title}

@@ -21,8 +21,9 @@ import { toast } from 'sonner';
 import { ShareDialog } from '../components/ShareDialog';
 import { ThemeToggle, TopBar } from '../components/TopBar';
 import { UserMenu } from '../components/UserMenu';
-import { Button, Dialog, Input, Menu, Spinner } from '../components/ui';
+import { Button, Dialog, Input, Menu, Spinner, stagger } from '../components/ui';
 import { SAMPLE_FAMILIES } from '../editor/samples';
+import { Illustration } from '../components/Illustration';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { NewBoardDialog } from '../library/NewBoardDialog';
 import { VersionBadge } from '../version/VersionBadge';
@@ -511,7 +512,8 @@ export function LibraryPage() {
                 <Spinner />
               </div>
             ) : list.isError ? (
-              <div className="flex flex-col items-center gap-3 py-24 text-center">
+              <div className="tp-rise flex flex-col items-center gap-3 py-20 text-center">
+                <Illustration name="error" className="w-44" />
                 <p className="text-sm text-danger">
                   Couldn’t load boards: {(list.error as Error).message}
                 </p>
@@ -520,7 +522,25 @@ export function LibraryPage() {
                 </Button>
               </div>
             ) : diagrams.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-20 text-center">
+              <div className="tp-rise flex flex-col items-center gap-3 py-16 text-center">
+                <Illustration
+                  className="w-48"
+                  name={
+                    debouncedQ
+                      ? 'search'
+                      : view === 'trash'
+                        ? 'trash'
+                        : view === 'starred'
+                          ? 'starred'
+                          : view === 'recent'
+                            ? 'recent'
+                            : view === 'shared'
+                              ? 'shared'
+                              : chain.length
+                                ? 'folder'
+                                : 'boards'
+                  }
+                />
                 <p className="max-w-md text-sm text-muted">
                   {debouncedQ
                     ? `No boards match “${debouncedQ}”.`
@@ -548,8 +568,8 @@ export function LibraryPage() {
                 )}
               </div>
             ) : layout === 'grid' ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {diagrams.map((d) => (
+              <div className="tp-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {diagrams.map((d, i) => (
                   <DiagramCard
                     key={d.id}
                     d={d}
@@ -557,12 +577,13 @@ export function LibraryPage() {
                     present={presence[d.id] ?? []}
                     actions={actions}
                     layout="grid"
+                    index={i}
                   />
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col">
-                {diagrams.map((d) => (
+              <div className="tp-stagger flex flex-col">
+                {diagrams.map((d, i) => (
                   <DiagramCard
                     key={d.id}
                     d={d}
@@ -570,6 +591,7 @@ export function LibraryPage() {
                     present={presence[d.id] ?? []}
                     actions={actions}
                     layout="list"
+                    index={i}
                   />
                 ))}
               </div>
@@ -718,19 +740,24 @@ export function LibraryPage() {
         title="New diagram from a sample"
         width="max-w-4xl"
       >
-        <div className="grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 md:grid-cols-4">
-          {SAMPLE_FAMILIES.map((fam) => (
+        <div className="tp-stagger grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3 md:grid-cols-4">
+          {SAMPLE_FAMILIES.map((fam, i) => (
             <button
               key={fam.name}
               type="button"
-              className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left hover:border-accent"
+              style={stagger(i)}
+              className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
               onClick={() => {
                 setSamplesOpen(false);
                 create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
               }}
             >
               <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-white">
-                <Thumbnail code={fam.examples[0]!.code} config="{}" className="absolute inset-2" />
+                <Thumbnail
+                  code={fam.examples[0]!.code}
+                  config="{}"
+                  className="tp-bob absolute inset-2"
+                />
               </span>
               <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
                 {fam.name}

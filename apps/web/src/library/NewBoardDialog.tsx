@@ -1,5 +1,5 @@
 import { Shapes } from 'lucide-react';
-import { Dialog } from '../components/ui';
+import { Dialog, stagger } from '../components/ui';
 import { TemplateArt } from './TemplateArt';
 import { BOARD_TEMPLATES, type BoardTemplate } from './templates';
 
@@ -17,7 +17,10 @@ export function NewBoardDialog({
 }) {
   return (
     <Dialog open={open} onClose={onClose} title="Create a new board" width="max-w-5xl">
-      <div data-testid="new-board" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        data-testid="new-board"
+        className="tp-stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
         {BOARD_TEMPLATES.map((t, i) => (
           <button
             key={t.id}
@@ -26,10 +29,10 @@ export function NewBoardDialog({
             data-autofocus={i === 0 ? '' : undefined}
             aria-label={`${t.name}: ${t.tagline}`}
             onClick={() => onPick(t)}
-            style={{ animationDelay: `${i * 40}ms` }}
-            className="group tp-rise flex min-w-0 flex-row overflow-hidden sm:flex-col rounded-xl border border-border bg-surface text-left [animation-fill-mode:backwards] transition-[border-color,box-shadow,translate] duration-150 hover:-translate-y-0.5 hover:border-accent hover:shadow-md focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none"
+            style={stagger(i)}
+            className="group tp-lift flex min-w-0 flex-row overflow-hidden rounded-xl border border-border bg-surface text-left focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none sm:flex-col"
           >
-            <span className="tp-art block aspect-[5/3] w-32 shrink-0 self-center border-r border-border bg-surface-2 sm:w-auto sm:self-auto sm:border-r-0 sm:border-b">
+            <span className="block aspect-[5/3] w-32 shrink-0 self-center border-r border-border bg-surface-2 sm:w-auto sm:self-auto sm:border-r-0 sm:border-b">
               <TemplateArt id={t.id} />
             </span>
             <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
