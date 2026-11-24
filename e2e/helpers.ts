@@ -52,3 +52,16 @@ export async function shareWith(
   await expect(dialog.getByTestId('member').filter({ hasText: emailOf(other) })).toBeVisible();
   await dialog.getByRole('button', { name: 'Close' }).click();
 }
+
+/**
+ * Creates a board from the library through the new-board picker and waits for the editor.
+ * Defaults to the Mermaid template (the classic sample flowchart).
+ */
+export async function newBoard(
+  page: Page,
+  template: 'empty' | 'mermaid' | 'c4' | 'bpmn' = 'mermaid',
+) {
+  await page.getByRole('button', { name: 'New diagram' }).first().click();
+  await page.getByTestId('new-board').locator(`[data-template=${template}]`).click();
+  await page.waitForURL(/\/d\//);
+}

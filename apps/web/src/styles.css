@@ -199,6 +199,29 @@ body {
 .tp-rise {
   animation: tp-rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+/* New-board picker illustrations: gently bob while hovered or focused. */
+@keyframes tp-art-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes tp-art-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.group:is(:hover, :focus-visible) .tp-art .tp-art-float {
+  animation: tp-art-bob 1.4s ease-in-out infinite;
+}
+.group:is(:hover, :focus-visible) .tp-art .tp-art-delay {
+  animation-delay: 0.15s;
+}
+.group:is(:hover, :focus-visible) .tp-art .tp-art-delay-2 {
+  animation-delay: 0.3s;
+}
+.tp-art-blink {
+  animation: tp-art-blink 1.1s steps(1) infinite;
+}
 /* Page content eases in on navigation. */
 .tp-page {
   animation: tp-fade 220ms ease-out;

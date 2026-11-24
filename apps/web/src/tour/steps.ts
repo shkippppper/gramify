@@ -25,7 +25,7 @@ export interface TourStep {
 export type TourName = 'library' | 'editor';
 
 /** Bump when steps are added; equals the highest `since` below. */
-export const TOUR_VERSION = 2;
+export const TOUR_VERSION = 3;
 
 export const TOURS: Record<TourName, TourStep[]> = {
   library: [
@@ -39,8 +39,15 @@ export const TOURS: Record<TourName, TourStep[]> = {
       id: 'create',
       target: 'new-diagram',
       title: 'Create a board',
-      body: 'Start from scratch. The arrow also lets you start from one of 34 sample diagrams, import a mermaid.live link or Mermaid code, or upload a .mmd / .md file.',
+      body: 'New diagram makes a board. The arrow next to it also lets you start from one of 34 sample diagrams, import a mermaid.live link or Mermaid code, or upload a .mmd / .md file.',
       since: 1,
+    },
+    {
+      id: 'templates',
+      target: 'new-diagram',
+      title: 'Pick a starting point',
+      body: 'Each new board starts with a choice: Empty, Mermaid, C4 architecture (how a software system fits together) or a BPMN-style process with swimlanes. Press Enter for an empty board.',
+      since: 3,
     },
     {
       id: 'views',

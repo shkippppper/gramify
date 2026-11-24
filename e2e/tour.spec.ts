@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { userPage } from './helpers';
+import { userPage, newBoard } from './helpers';
 
 const tourCard = (page: import('@playwright/test').Page) =>
   page.getByTestId('tour').getByRole('dialog');
@@ -11,7 +11,7 @@ test('first visit shows the tour; “Don’t show this again” keeps it away', 
   await card.getByRole('button', { name: 'Next' }).click();
   await expect(card).toContainText('Create a board');
   await page.keyboard.press('ArrowRight');
-  await expect(card).toContainText('Find your boards');
+  await expect(card).toContainText('Pick a starting point');
   await page.keyboard.press('ArrowLeft');
   await expect(card).toContainText('Create a board');
 
@@ -54,8 +54,7 @@ test('skipping brings the tour back next session; finishing the editor tour ends
   await page.keyboard.press('Escape');
 
   // The first board opens the editor tour; step through to the end.
-  await page.getByRole('button', { name: 'New diagram' }).first().click();
-  await page.waitForURL(/\/d\//);
+  await newBoard(page);
   const card = tourCard(page);
   await expect(card).toContainText('Write Mermaid code');
   for (let i = 0; i < 20; i++) {

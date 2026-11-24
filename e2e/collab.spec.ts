@@ -1,12 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { editorText, expectEditorToContain, shareWith, typeAtEnd, userPage } from './helpers';
+import {
+  editorText,
+  expectEditorToContain,
+  shareWith,
+  typeAtEnd,
+  userPage,
+  newBoard,
+} from './helpers';
 
 test('two people edit the same diagram together', async ({ browser }) => {
   const ada = await userPage(browser, 'Ada Lovelace');
   const grace = await userPage(browser, 'Grace Hopper');
 
-  await ada.getByRole('button', { name: 'New diagram' }).first().click();
-  await ada.waitForURL(/\/d\//);
+  await newBoard(ada);
   await expect(ada.locator('[data-testid=diagram] svg')).toBeVisible();
   await shareWith(ada, grace);
   await grace.goto(ada.url());
@@ -51,8 +57,7 @@ test('two people edit the same diagram together', async ({ browser }) => {
 test('save, preview and restore a version', async ({ browser }) => {
   const ada = await userPage(browser, 'Ada Lovelace');
   const grace = await userPage(browser, 'Grace Hopper');
-  await ada.getByRole('button', { name: 'New diagram' }).first().click();
-  await ada.waitForURL(/\/d\//);
+  await newBoard(ada);
   await shareWith(ada, grace);
   await grace.goto(ada.url());
   await expect(grace.locator('[data-testid=diagram] svg')).toBeVisible();
@@ -81,8 +86,7 @@ test('save, preview and restore a version', async ({ browser }) => {
 test('library: folders, star, search and trash', async ({ browser }) => {
   const page = await userPage(browser, 'Linus Torvalds');
   const title = `Kernel map ${Date.now()}`;
-  await page.getByRole('button', { name: 'New diagram' }).first().click();
-  await page.waitForURL(/\/d\//);
+  await newBoard(page);
   await page.getByTestId('title-input').fill(title);
   await page.getByTestId('title-input').press('Enter');
   await expect(page.getByTestId('status')).toHaveText(/Saved/);
@@ -138,8 +142,7 @@ test('boards are private until shared; viewers are read-only', async ({ browser 
   const ada = await userPage(browser, 'Ada Lovelace');
   const eve = await userPage(browser, 'Eve Outsider');
   const vic = await userPage(browser, 'Vic Viewer');
-  await ada.getByRole('button', { name: 'New diagram' }).first().click();
-  await ada.waitForURL(/\/d\//);
+  await newBoard(ada);
   await expect(ada.locator('[data-testid=diagram] svg')).toBeVisible();
 
   // Someone with the link but no access can't open it.
@@ -163,8 +166,7 @@ test('boards are private until shared; viewers are read-only', async ({ browser 
 test('changing a member’s role mid-session keeps everyone in sync', async ({ browser }) => {
   const ada = await userPage(browser, 'Ada Lovelace');
   const grace = await userPage(browser, 'Grace Hopper');
-  await ada.getByRole('button', { name: 'New diagram' }).first().click();
-  await ada.waitForURL(/\/d\//);
+  await newBoard(ada);
   await shareWith(ada, grace, 'Can edit');
   await grace.goto(ada.url());
   await expect(grace.locator('[data-testid=diagram] svg')).toBeVisible();
@@ -196,8 +198,7 @@ test('changing a member’s role mid-session keeps everyone in sync', async ({ b
 test('people can change their display name and others see it live', async ({ browser }) => {
   const ada = await userPage(browser, 'Ada Lovelace');
   const grace = await userPage(browser, 'Grace Hopper');
-  await ada.getByRole('button', { name: 'New diagram' }).first().click();
-  await ada.waitForURL(/\/d\//);
+  await newBoard(ada);
   await shareWith(ada, grace);
   await grace.goto(ada.url());
   await expect(grace.getByRole('button', { name: 'Follow Ada Lovelace' })).toBeVisible();

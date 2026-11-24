@@ -24,6 +24,7 @@ import { UserMenu } from '../components/UserMenu';
 import { Button, Dialog, Input, Menu, Spinner } from '../components/ui';
 import { SAMPLE_FAMILIES } from '../editor/samples';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
+import { NewBoardDialog } from '../library/NewBoardDialog';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import { Thumbnail } from '../library/Thumbnail';
 import {
@@ -171,6 +172,7 @@ export function LibraryPage() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [samplesOpen, setSamplesOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   const [deleting, setDeleting] = useState<DiagramSummary | null>(null);
   const [leaving, setLeaving] = useState<DiagramSummary | null>(null);
   const [sharing, setSharing] = useState<DiagramSummary | null>(null);
@@ -419,7 +421,7 @@ export function LibraryPage() {
                     variant="primary"
                     className="rounded-r-none"
                     disabled={create.isPending}
-                    onClick={() => create.mutate({})}
+                    onClick={() => setNewOpen(true)}
                   >
                     {create.isPending ? <Spinner /> : <FilePlus2 size={15} />} New diagram
                   </Button>
@@ -535,7 +537,7 @@ export function LibraryPage() {
                 </p>
                 {(view === 'all' || view === 'mine') && !debouncedQ && (
                   <div className="flex flex-wrap justify-center gap-2">
-                    <Button variant="primary" onClick={() => create.mutate({})}>
+                    <Button variant="primary" onClick={() => setNewOpen(true)}>
                       <FilePlus2 size={15} /> New diagram
                     </Button>
                     <Button onClick={() => setSamplesOpen(true)}>
@@ -691,6 +693,19 @@ export function LibraryPage() {
           </p>
         )}
       </Dialog>
+
+      <NewBoardDialog
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        onPick={(t) => {
+          setNewOpen(false);
+          create.mutate({ code: t.code, title: t.title });
+        }}
+        onBrowseSamples={() => {
+          setNewOpen(false);
+          setSamplesOpen(true);
+        }}
+      />
 
       <Dialog
         open={samplesOpen}
