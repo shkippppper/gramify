@@ -19,7 +19,15 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
     .getByRole('dialog', { name: 'Create a new board' })
     .getByRole('button', { name: 'Browse all samples' })
     .click();
-  await expect(page.getByRole('dialog', { name: 'New diagram from a sample' })).toBeVisible();
+  const gallery = page.getByRole('dialog', { name: 'New diagram from a sample' });
+  await expect(gallery).toBeVisible();
+  // The four starting points come first, as "Most used".
+  await expect(gallery.getByTestId('most-used').locator('[data-template]')).toHaveText([
+    'Empty',
+    'Mermaid',
+    'C4 architecture',
+    'BPMN process',
+  ]);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-tour=board-card]')).toHaveCount(0);
 

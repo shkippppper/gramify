@@ -4,8 +4,6 @@ import { DEFAULT_CODE } from '@gramify/shared';
 export interface BoardTemplate {
   id: 'empty' | 'mermaid' | 'c4' | 'bpmn';
   name: string;
-  /** One line under the name. */
-  tagline: string;
   /** What it is and when to use it. */
   description: string;
   /** Title for the new board. */
@@ -74,7 +72,6 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id: 'empty',
     name: 'Empty',
-    tagline: 'A blank board',
     description: 'Start from scratch and write any Mermaid diagram yourself.',
     title: 'Untitled diagram',
     code: EMPTY_CODE,
@@ -82,7 +79,6 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id: 'mermaid',
     name: 'Mermaid',
-    tagline: 'Flowcharts, sequences and more',
     description:
       'Diagrams written as text: flowcharts, sequence, class, ER, state, Gantt and 20+ other types.',
     title: 'Untitled diagram',
@@ -91,7 +87,6 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id: 'c4',
     name: 'C4 architecture',
-    tagline: 'How a software system fits together',
     description:
       'People, systems and the links between them, from the big picture down to containers and components.',
     title: 'System context',
@@ -100,7 +95,6 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id: 'bpmn',
     name: 'BPMN process',
-    tagline: 'Who does what, step by step',
     description:
       'A business process in swimlanes: start and end events, tasks, and yes/no decisions.',
     title: 'Order process',

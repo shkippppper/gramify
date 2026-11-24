@@ -26,6 +26,8 @@ import { SAMPLE_FAMILIES } from '../editor/samples';
 import { Illustration } from '../components/Illustration';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { NewBoardDialog } from '../library/NewBoardDialog';
+import { TemplateArt } from '../library/TemplateArt';
+import { BOARD_TEMPLATES } from '../library/templates';
 import { VersionBadge } from '../version/VersionBadge';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import { Thumbnail } from '../library/Thumbnail';
@@ -740,30 +742,62 @@ export function LibraryPage() {
         title="New diagram from a sample"
         width="max-w-4xl"
       >
-        <div className="tp-stagger grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-3 md:grid-cols-4">
-          {SAMPLE_FAMILIES.map((fam, i) => (
-            <button
-              key={fam.name}
-              type="button"
-              style={stagger(i)}
-              className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
-              onClick={() => {
-                setSamplesOpen(false);
-                create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
-              }}
-            >
-              <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-white">
-                <Thumbnail
-                  code={fam.examples[0]!.code}
-                  config="{}"
-                  className="tp-bob absolute inset-2"
-                />
-              </span>
-              <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
-                {fam.name}
-              </span>
-            </button>
-          ))}
+        <div className="max-h-[65vh] overflow-y-auto p-1">
+          <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
+            Most used
+          </h3>
+          <div className="tp-stagger grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="most-used">
+            {BOARD_TEMPLATES.map((t, i) => (
+              <button
+                key={t.id}
+                type="button"
+                data-template={t.id}
+                style={stagger(i)}
+                className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
+                onClick={() => {
+                  setSamplesOpen(false);
+                  create.mutate({ code: t.code, title: t.title });
+                }}
+              >
+                <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-surface-2">
+                  <span className="absolute inset-0 grid place-items-center">
+                    <TemplateArt id={t.id} />
+                  </span>
+                </span>
+                <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
+                  {t.name}
+                </span>
+              </button>
+            ))}
+          </div>
+          <h3 className="mt-5 mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
+            All diagram types
+          </h3>
+          <div className="tp-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {SAMPLE_FAMILIES.map((fam, i) => (
+              <button
+                key={fam.name}
+                type="button"
+                style={stagger(i + BOARD_TEMPLATES.length)}
+                className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
+                onClick={() => {
+                  setSamplesOpen(false);
+                  create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
+                }}
+              >
+                <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-white">
+                  <Thumbnail
+                    code={fam.examples[0]!.code}
+                    config="{}"
+                    className="tp-bob absolute inset-2"
+                  />
+                </span>
+                <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
+                  {fam.name}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </Dialog>
 

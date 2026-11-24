@@ -16,6 +16,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.6.0',
+    date: '2026-11-24',
+    title: 'Most used samples',
+    changes: [
+      'The sample gallery starts with a Most used section: Empty, Mermaid, C4 architecture and BPMN process.',
+      'Simpler cards in the new-board picker: just the name and what it’s for.',
+    ],
+  },
+  {
     version: '1.5.1',
     date: '2026-11-24',
     title: 'Mindmap and Kanban previews',
