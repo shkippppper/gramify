@@ -25,7 +25,7 @@ export interface TourStep {
 export type TourName = 'library' | 'editor';
 
 /** Bump when steps are added; equals the highest `since` below. */
-export const TOUR_VERSION = 3;
+export const TOUR_VERSION = 4;
 
 export const TOURS: Record<TourName, TourStep[]> = {
   library: [
@@ -97,6 +97,13 @@ export const TOURS: Record<TourName, TourStep[]> = {
       title: 'Your account',
       body: 'Change your display name with the ✎ pencil, replay this tour, or sign out. The Playground lets you sketch without saving.',
       since: 1,
+    },
+    {
+      id: 'version',
+      target: 'version',
+      title: 'What’s new',
+      body: 'The version you’re on. Click it for release notes. A dot means there’s an update you haven’t looked at yet.',
+      since: 4,
     },
   ],
   editor: [

@@ -15,6 +15,7 @@ import svgPanZoom from 'svg-pan-zoom';
 import { IconButton } from '../components/ui';
 import { throttleTrailing } from '../lib/throttle';
 import { elementsForLine } from './locate';
+import { VersionBadge } from '../version/VersionBadge';
 import { MERMAID_VERSION } from './mermaid';
 import { sketchSvg } from './rough';
 import { mountStickyActors, type StickyActors } from './stickyActors';
@@ -497,6 +498,7 @@ export function Preview({
             <span className="rounded bg-surface/80 px-2 py-0.5 font-mono text-[11px] text-muted">
               mermaid v{MERMAID_VERSION}
             </span>
+            <VersionBadge />
           </div>
         </>
       )}

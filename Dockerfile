@@ -15,6 +15,8 @@ RUN pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/web apps/web
+# Railway passes the deployed commit in; it's shown next to the version in the app.
+ARG RAILWAY_GIT_COMMIT_SHA
 RUN pnpm --filter @gramify/web build
 
 # ---- runtime: production deps for the server only ---------------------------

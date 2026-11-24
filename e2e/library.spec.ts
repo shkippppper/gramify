@@ -44,3 +44,17 @@ test('new board picker: C4 and BPMN templates render', async ({ browser }) => {
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('In stock?');
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('Courier');
 });
+
+test('the version badge opens the release notes and clears its “new” dot', async ({ browser }) => {
+  const page = await userPage(browser, 'Release Reader');
+  const badge = page.getByTestId('version-badge');
+  await expect(badge).toHaveText(/Gramify v\d+\.\d+\.\d+/);
+  await expect(badge.getByLabel('New')).toHaveCount(1);
+  await badge.click();
+  const notes = page.getByRole('dialog', { name: 'What’s new in Gramify' });
+  await expect(notes.getByTestId('changelog')).toContainText('First release');
+  await page.keyboard.press('Escape');
+  await expect(badge.getByLabel('New')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId('version-badge').getByLabel('New')).toHaveCount(0);
+});

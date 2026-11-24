@@ -25,6 +25,7 @@ import { Button, Dialog, Input, Menu, Spinner } from '../components/ui';
 import { SAMPLE_FAMILIES } from '../editor/samples';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { NewBoardDialog } from '../library/NewBoardDialog';
+import { VersionBadge } from '../version/VersionBadge';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import { Thumbnail } from '../library/Thumbnail';
 import {
@@ -693,6 +694,10 @@ export function LibraryPage() {
           </p>
         )}
       </Dialog>
+
+      <div className="pointer-events-none fixed right-3 bottom-3 z-10">
+        <VersionBadge />
+      </div>
 
       <NewBoardDialog
         open={newOpen}

@@ -24,3 +24,22 @@ pnpm typecheck && pnpm test && pnpm e2e
 ```
 
 End-to-end tests turn the tour off (`e2e/helpers.ts`); `e2e/tour.spec.ts` tests it directly.
+
+## Every release gets a version
+
+The version is shown in the bottom-right corner of the app, and clicking it opens the release
+notes, so people can see what changed. For each user-facing update:
+
+1. **Add a release** at the top of `apps/web/src/version/changelog.ts`: a new version (minor for
+   features, patch for fixes), today's date, a short title, and the changes in plain words.
+2. **Set the same version** in `apps/web/package.json` (and `apps/server`, `packages/shared`).
+   A unit test fails if the changelog and `apps/web/package.json` disagree.
+3. **Tag the commit** and push the tag:
+
+   ```bash
+   git tag -a v1.4.0 -m "v1.4.0: Templates and release notes"
+   git push origin v1.4.0
+   ```
+
+On Railway the build also shows the deployed commit next to the version (from
+`RAILWAY_GIT_COMMIT_SHA`).
