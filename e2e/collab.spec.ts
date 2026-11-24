@@ -50,6 +50,10 @@ test('two people edit the same diagram together', async ({ browser }) => {
   // Follow mode
   await grace.getByRole('button', { name: 'Follow Ada Lovelace' }).click();
   await expect(grace.getByText('Following Ada Lovelace')).toBeVisible();
+  // Following survives the preview re-rendering while the followed person edits.
+  await typeAtEnd(ada, '\n    H --> I[While followed]');
+  await expect(grace.locator('[data-testid=diagram] svg')).toContainText('While followed');
+  await expect(grace.getByText('Following Ada Lovelace')).toBeVisible();
   await grace.getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(grace.getByText('Following Ada Lovelace')).toHaveCount(0);
 });

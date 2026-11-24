@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
   type Ref,
+  type RefObject,
 } from 'react';
 import svgPanZoom from 'svg-pan-zoom';
 import { IconButton } from '../components/ui';
@@ -75,6 +76,20 @@ interface Props {
   highlight?: { code: string; line: number } | null;
   /** Hide toolbars (embed / view mode). */
   chrome?: boolean;
+}
+
+/**
+ * svg-pan-zoom's destroy() resets zoom and pan, which fires onZoom/onPan synchronously (it
+ * nulls the wrong callback fields). Mark it programmatic so a teardown isn't taken for the
+ * user panning: that would stop follow mode on every re-render and broadcast the reset view.
+ */
+function destroyQuietly(pz: PanZoom, programmatic: RefObject<boolean>) {
+  programmatic.current = true;
+  try {
+    pz.destroy();
+  } finally {
+    programmatic.current = false;
+  }
 }
 
 export function Preview({
@@ -201,7 +216,7 @@ export function Preview({
           ? (vb as [number, number, number, number])
           : null;
 
-      prev?.destroy();
+      if (prev) destroyQuietly(prev, programmatic);
       pzRef.current = null;
       host.replaceChildren(el);
       el.setAttribute('width', '100%');
@@ -290,7 +305,7 @@ export function Preview({
 
   useEffect(
     () => () => {
-      pzRef.current?.destroy();
+      if (pzRef.current) destroyQuietly(pzRef.current, programmatic);
       pzRef.current = null;
     },
     [],
