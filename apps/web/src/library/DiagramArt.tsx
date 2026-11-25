@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { C4Art } from './TemplateArt';
+import { BpmnArt, C4Art } from './TemplateArt';
 
 /**
  * One illustration per diagram type, in the same style as the new-board picker: theme colors,
@@ -431,6 +431,8 @@ const ART: Record<string, (arrow: string) => ReactNode> = {
   ),
 
   c4: (arrow) => <C4Art arrow={arrow.slice(5, -1)} />,
+
+  bpmn: (arrow) => <BpmnArt arrow={arrow.slice(5, -1)} />,
 
   'cynefin-framework': () => {
     const Q = ({

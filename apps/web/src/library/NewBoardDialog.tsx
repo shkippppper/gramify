@@ -28,6 +28,7 @@ export function NewBoardDialog({
             data-template={t.id}
             data-autofocus={i === 0 ? '' : undefined}
             aria-label={t.name}
+            title={t.description}
             onClick={() => onPick(t)}
             style={stagger(i)}
             className="group tp-lift flex min-w-0 flex-row overflow-hidden rounded-xl border border-border bg-surface text-left focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none sm:flex-col"
@@ -43,9 +44,6 @@ export function NewBoardDialog({
                     Enter
                   </kbd>
                 )}
-              </span>
-              <span className="line-clamp-2 text-xs leading-relaxed text-muted sm:line-clamp-none">
-                {t.description}
               </span>
             </span>
           </button>

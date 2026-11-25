@@ -16,6 +16,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.7.1',
+    date: '2026-11-25',
+    title: 'Tidier picker',
+    changes: [
+      'The new-board picker shows just the names (hover a card for its description), without the blinking cursor.',
+      'Most used samples are now Sequence, C4 and BPMN.',
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-11-25',
     title: 'An illustration for every diagram type',

@@ -60,16 +60,6 @@ function EmptyArt() {
         strokeWidth="2.4"
         strokeLinecap="round"
       />
-      {/* A blinking text cursor: ready to type. */}
-      <rect
-        className="tp-blink"
-        x="122"
-        y="78"
-        width="1.6"
-        height="11"
-        rx="0.8"
-        fill="var(--tp-fg)"
-      />
     </g>
   );
 }
@@ -187,7 +177,7 @@ export function C4Art({ arrow }: { arrow: string }) {
   );
 }
 
-function BpmnArt({ arrow }: { arrow: string }) {
+export function BpmnArt({ arrow }: { arrow: string }) {
   return (
     <>
       {/* Two swimlanes. */}

@@ -206,16 +206,10 @@ body {
  * tp-bob      part of an illustration or a thumbnail that floats while its `.group` is hovered
  *             or focused; add tp-bob-1 / tp-bob-2 for parts that follow a beat later.
  *             Inside `.tp-idle` it floats all the time, slower (empty states, sign-in).
- * tp-blink    a blinking text caret.
  */
 @keyframes tp-bob {
   50% {
     transform: translateY(-3px);
-  }
-}
-@keyframes tp-blink {
-  50% {
-    opacity: 0;
   }
 }
 .tp-lift {
@@ -250,9 +244,6 @@ body {
 }
 .tp-idle .tp-bob-2 {
   animation-delay: 1.2s;
-}
-.tp-blink {
-  animation: tp-blink 1.1s steps(1) infinite;
 }
 /* Page content eases in on navigation. */
 .tp-page {

@@ -1,4 +1,5 @@
 import { DEFAULT_CODE } from '@gramify/shared';
+import { SAMPLE_FAMILIES } from '../editor/samples';
 
 /** Starting points offered when creating a board. */
 export interface BoardTemplate {
@@ -101,3 +102,15 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
     code: BPMN_CODE,
   },
 ];
+
+/** The first row of the sample gallery ("Most used"); `art` picks the DiagramArt illustration. */
+export const MOST_USED: { art: string; name: string; title: string; code: string }[] = (() => {
+  const sequence = SAMPLE_FAMILIES.find((f) => f.id === 'sequence')?.examples[0];
+  return [
+    ...(sequence
+      ? [{ art: 'sequence', name: 'Sequence', title: sequence.title, code: sequence.code }]
+      : []),
+    { art: 'c4', name: 'C4', title: 'System context', code: C4_CODE },
+    { art: 'bpmn', name: 'BPMN', title: 'Order process', code: BPMN_CODE },
+  ];
+})();

@@ -21,12 +21,11 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
     .click();
   const gallery = page.getByRole('dialog', { name: 'New diagram from a sample' });
   await expect(gallery).toBeVisible();
-  // The four starting points come first, as "Most used".
-  await expect(gallery.getByTestId('most-used').locator('[data-template]')).toHaveText([
-    'Empty',
-    'Mermaid',
-    'C4 architecture',
-    'BPMN process',
+  // The most used diagram types come first.
+  await expect(gallery.getByTestId('most-used').locator('[data-most-used]')).toHaveText([
+    'Sequence',
+    'C4',
+    'BPMN',
   ]);
   // Every diagram type has an illustration; Railroad offers its notations.
   await expect(gallery.locator('[data-family] svg[data-art]').first()).toBeVisible();
