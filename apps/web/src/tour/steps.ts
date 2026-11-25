@@ -46,7 +46,7 @@ export const TOURS: Record<TourName, TourStep[]> = {
       id: 'templates',
       target: 'new-diagram',
       title: 'Pick a starting point',
-      body: 'Each new board starts with a choice: Empty, Mermaid, C4 architecture (how a software system fits together) or a BPMN-style process with swimlanes. Press Enter for an empty board.',
+      body: 'Each new board starts with a choice: Empty, Sequence, C4 (how a software system fits together) or BPMN (a process with swimlanes). Press Enter for an empty board.',
       since: 3,
     },
     {

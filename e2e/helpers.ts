@@ -53,13 +53,18 @@ export async function shareWith(
   await dialog.getByRole('button', { name: 'Close' }).click();
 }
 
-/**
- * Creates a board from the library through the new-board picker and waits for the editor.
- * Defaults to the Mermaid template (the classic sample flowchart).
- */
-export async function newBoard(
+/** Creates a board with the classic sample flowchart (via the API) and opens it. */
+export async function newBoard(page: Page) {
+  const res = await page.request.post('/api/diagrams', { data: {} });
+  expect(res.ok()).toBe(true);
+  const { id } = (await res.json()) as { id: string };
+  await page.goto(`/d/${id}`);
+}
+
+/** Creates a board through the new-board picker and waits for the editor. */
+export async function newBoardFromPicker(
   page: Page,
-  template: 'empty' | 'mermaid' | 'c4' | 'bpmn' = 'mermaid',
+  template: 'empty' | 'sequence' | 'c4' | 'bpmn',
 ) {
   await page.getByRole('button', { name: 'New diagram' }).first().click();
   await page.getByTestId('new-board').locator(`[data-template=${template}]`).click();

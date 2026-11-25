@@ -1,6 +1,6 @@
 import { Shapes } from 'lucide-react';
 import { Dialog, stagger } from '../components/ui';
-import { TemplateArt } from './TemplateArt';
+import { DiagramArt } from './DiagramArt';
 import { BOARD_TEMPLATES, type BoardTemplate } from './templates';
 
 /** Shown when creating a board: pick what kind of diagram to start from. */
@@ -34,7 +34,7 @@ export function NewBoardDialog({
             className="group tp-lift flex min-w-0 flex-row overflow-hidden rounded-xl border border-border bg-surface text-left focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:outline-none sm:flex-col"
           >
             <span className="block aspect-[5/3] w-32 shrink-0 self-center border-r border-border bg-surface-2 sm:w-auto sm:self-auto sm:border-r-0 sm:border-b">
-              <TemplateArt id={t.id} />
+              <DiagramArt id={t.id} />
             </span>
             <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
               <span className="flex items-center gap-2 text-sm font-semibold">

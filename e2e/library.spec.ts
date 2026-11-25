@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { editorText, expectEditorToContain, newBoard, userPage } from './helpers';
+import { editorText, expectEditorToContain, newBoardFromPicker, userPage } from './helpers';
 
 test('new board picker: Enter makes an empty board; Escape cancels; samples link', async ({
   browser,
@@ -10,6 +10,11 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
   // Escape closes the picker without creating anything.
   await page.getByRole('button', { name: 'New diagram' }).first().click();
   await expect(picker.locator('[data-template]')).toHaveCount(4);
+  expect(
+    await picker
+      .locator('[data-template]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('aria-label'))),
+  ).toEqual(['Empty', 'Sequence', 'C4', 'BPMN']);
   await page.keyboard.press('Escape');
   await expect(picker).toHaveCount(0);
 
@@ -23,6 +28,7 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
   await expect(gallery).toBeVisible();
   // The most used diagram types come first.
   await expect(gallery.getByTestId('most-used').locator('[data-most-used]')).toHaveText([
+    'Empty',
     'Sequence',
     'C4',
     'BPMN',
@@ -50,12 +56,12 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
 
 test('new board picker: C4 and BPMN templates render', async ({ browser }) => {
   const page = await userPage(browser, 'Template Maker');
-  await newBoard(page, 'c4');
+  await newBoardFromPicker(page, 'c4');
   await expect(page.getByTestId('title-input')).toHaveValue('System context');
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('Online store');
 
   await page.goto('/');
-  await newBoard(page, 'bpmn');
+  await newBoardFromPicker(page, 'bpmn');
   await expect(page.getByTestId('title-input')).toHaveValue('Order process');
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('In stock?');
   await expect(page.locator('[data-testid=diagram] svg')).toContainText('Courier');

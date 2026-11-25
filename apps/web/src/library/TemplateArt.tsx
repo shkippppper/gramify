@@ -1,44 +1,11 @@
-import { useId } from 'react';
-import type { BoardTemplate } from './templates';
-
 /**
- * Illustrations for the new-board picker. Drawn by hand (not rendered diagrams) so they read
- * at a glance, animate on hover, and follow the app theme in light and dark mode.
+ * Illustrations shared by the new-board picker and the sample gallery (drawn by hand so they
+ * read at a glance, animate on hover and follow the theme). DiagramArt wraps them in a frame.
  */
-export function TemplateArt({ id }: { id: BoardTemplate['id'] }) {
-  const uid = useId().replace(/:/g, '');
-  const dots = `tp-dots-${uid}`;
-  const arrow = `tp-arrow-${uid}`;
-  return (
-    <svg viewBox="0 0 200 120" className="block h-full w-full" aria-hidden="true">
-      <defs>
-        <pattern id={dots} width="10" height="10" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.8" fill="var(--tp-border)" />
-        </pattern>
-        <marker
-          id={arrow}
-          viewBox="0 0 6 6"
-          refX="5"
-          refY="3"
-          markerWidth="5"
-          markerHeight="5"
-          orient="auto-start-reverse"
-        >
-          <path d="M0 0 L6 3 L0 6 z" fill="var(--tp-muted)" />
-        </marker>
-      </defs>
-      <rect width="200" height="120" fill={`url(#${dots})`} />
-      {id === 'empty' && <EmptyArt />}
-      {id === 'mermaid' && <MermaidArt arrow={arrow} />}
-      {id === 'c4' && <C4Art arrow={arrow} />}
-      {id === 'bpmn' && <BpmnArt arrow={arrow} />}
-    </svg>
-  );
-}
 
 const line = { stroke: 'var(--tp-muted)', strokeWidth: 1.2, fill: 'none' } as const;
 
-function EmptyArt() {
+export function EmptyArt() {
   return (
     <g className="tp-bob">
       <rect
@@ -61,77 +28,6 @@ function EmptyArt() {
         strokeLinecap="round"
       />
     </g>
-  );
-}
-
-function MermaidArt({ arrow }: { arrow: string }) {
-  const code = [
-    { w: 34, c: 'var(--tp-accent)' },
-    { w: 46, c: 'var(--tp-muted)', x: 6 },
-    { w: 30, c: 'var(--tp-muted)', x: 6 },
-    { w: 40, c: 'var(--tp-muted)', x: 6 },
-    { w: 24, c: 'var(--tp-muted)', x: 6 },
-  ];
-  return (
-    <>
-      {/* Code on the left… */}
-      <g className="tp-bob">
-        <rect
-          x="12"
-          y="20"
-          width="70"
-          height="80"
-          rx="7"
-          fill="var(--tp-surface)"
-          stroke="var(--tp-border)"
-        />
-        {code.map((l, i) => (
-          <rect
-            key={i}
-            x={20 + (l.x ?? 0)}
-            y={32 + i * 13}
-            width={l.w}
-            height="4"
-            rx="2"
-            fill={l.c}
-            opacity={i === 0 ? 1 : 0.55}
-          />
-        ))}
-      </g>
-      <path d="M88 60 H102" {...line} strokeWidth={1.6} markerEnd={`url(#${arrow})`} />
-      {/* …becomes a diagram on the right. */}
-      <g className="tp-bob tp-bob-1">
-        <rect
-          x="122"
-          y="14"
-          width="44"
-          height="18"
-          rx="4"
-          fill="var(--tp-surface)"
-          stroke="var(--tp-accent)"
-          strokeWidth="1.4"
-        />
-        <path d="M144 32 V43" {...line} markerEnd={`url(#${arrow})`} />
-        <path
-          d="M144 45 L158 58 L144 71 L130 58 Z"
-          fill="var(--tp-surface)"
-          stroke="var(--tp-accent)"
-          strokeWidth="1.4"
-        />
-        <path d="M134 66 L124 84 M154 66 L164 84" {...line} markerEnd={`url(#${arrow})`} />
-        <rect x="106" y="86" width="34" height="16" rx="4" fill="var(--tp-accent)" opacity="0.85" />
-        <rect
-          x="148"
-          y="86"
-          width="34"
-          height="16"
-          rx="8"
-          fill="var(--tp-surface)"
-          stroke="var(--tp-accent)"
-          strokeWidth="1.4"
-        />
-      </g>
-    </>
   );
 }
 

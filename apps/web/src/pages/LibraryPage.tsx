@@ -27,7 +27,7 @@ import { Illustration } from '../components/Illustration';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { NewBoardDialog } from '../library/NewBoardDialog';
 import { DiagramArt } from '../library/DiagramArt';
-import { MOST_USED } from '../library/templates';
+import { BOARD_TEMPLATES } from '../library/templates';
 import { VersionBadge } from '../version/VersionBadge';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
 import {
@@ -746,11 +746,11 @@ export function LibraryPage() {
             Most used
           </h3>
           <div className="tp-stagger grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="most-used">
-            {MOST_USED.map((t, i) => (
+            {BOARD_TEMPLATES.map((t, i) => (
               <button
-                key={t.art}
+                key={t.id}
                 type="button"
-                data-most-used={t.art}
+                data-most-used={t.id}
                 style={stagger(i)}
                 className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
                 onClick={() => {
@@ -760,7 +760,7 @@ export function LibraryPage() {
               >
                 <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-surface-2">
                   <span className="absolute inset-0 grid place-items-center">
-                    <DiagramArt id={t.art} />
+                    <DiagramArt id={t.id} />
                   </span>
                 </span>
                 <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
@@ -776,7 +776,7 @@ export function LibraryPage() {
             {SAMPLE_FAMILIES.map((fam, i) => (
               <div
                 key={fam.name}
-                style={stagger(i + MOST_USED.length)}
+                style={stagger(i + BOARD_TEMPLATES.length)}
                 data-family={fam.id}
                 className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border"
               >

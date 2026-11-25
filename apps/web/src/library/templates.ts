@@ -1,9 +1,9 @@
-import { DEFAULT_CODE } from '@gramify/shared';
 import { SAMPLE_FAMILIES } from '../editor/samples';
 
 /** Starting points offered when creating a board. */
 export interface BoardTemplate {
-  id: 'empty' | 'mermaid' | 'c4' | 'bpmn';
+  /** Also picks the illustration (DiagramArt). */
+  id: 'empty' | 'sequence' | 'c4' | 'bpmn';
   name: string;
   /** What it is and when to use it. */
   description: string;
@@ -69,6 +69,9 @@ flowchart LR
     class inStock gateway
 `;
 
+const SEQUENCE = SAMPLE_FAMILIES.find((f) => f.id === 'sequence')!.examples[0]!;
+
+/** Starting points, shown in the new-board picker and as "Most used" in the sample gallery. */
 export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id: 'empty',
@@ -78,16 +81,15 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
     code: EMPTY_CODE,
   },
   {
-    id: 'mermaid',
-    name: 'Mermaid',
-    description:
-      'Diagrams written as text: flowcharts, sequence, class, ER, state, Gantt and 20+ other types.',
-    title: 'Untitled diagram',
-    code: DEFAULT_CODE,
+    id: 'sequence',
+    name: 'Sequence',
+    description: 'Messages between people and systems, in the order they happen.',
+    title: SEQUENCE.title,
+    code: SEQUENCE.code,
   },
   {
     id: 'c4',
-    name: 'C4 architecture',
+    name: 'C4',
     description:
       'People, systems and the links between them, from the big picture down to containers and components.',
     title: 'System context',
@@ -95,22 +97,10 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   },
   {
     id: 'bpmn',
-    name: 'BPMN process',
+    name: 'BPMN',
     description:
       'A business process in swimlanes: start and end events, tasks, and yes/no decisions.',
     title: 'Order process',
     code: BPMN_CODE,
   },
 ];
-
-/** The first row of the sample gallery ("Most used"); `art` picks the DiagramArt illustration. */
-export const MOST_USED: { art: string; name: string; title: string; code: string }[] = (() => {
-  const sequence = SAMPLE_FAMILIES.find((f) => f.id === 'sequence')?.examples[0];
-  return [
-    ...(sequence
-      ? [{ art: 'sequence', name: 'Sequence', title: sequence.title, code: sequence.code }]
-      : []),
-    { art: 'c4', name: 'C4', title: 'System context', code: C4_CODE },
-    { art: 'bpmn', name: 'BPMN', title: 'Order process', code: BPMN_CODE },
-  ];
-})();

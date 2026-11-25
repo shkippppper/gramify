@@ -16,6 +16,14 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.8.0',
+    date: '2026-11-25',
+    title: 'Empty, Sequence, C4, BPMN',
+    changes: [
+      'New diagram and the sample gallery’s Most used row now offer the same four starting points: Empty, Sequence, C4 and BPMN.',
+    ],
+  },
+  {
     version: '1.7.1',
     date: '2026-11-25',
     title: 'Tidier picker',
