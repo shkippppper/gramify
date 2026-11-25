@@ -224,7 +224,7 @@ body {
     box-shadow 160ms ease,
     border-color 160ms ease;
 }
-.tp-lift:is(:hover, :focus-visible) {
+.tp-lift:is(:hover, :focus-visible, :has(:focus-visible)) {
   translate: 0 -2px;
   border-color: var(--tp-accent);
   box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.22);
@@ -233,16 +233,16 @@ body {
   animation: tp-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   animation-delay: calc(min(var(--i, 0), 12) * 35ms);
 }
-.group:is(:hover, :focus-visible) .tp-bob {
+.group:is(:hover, :focus-visible, :has(:focus-visible)) .tp-bob {
   animation: tp-bob 1.4s ease-in-out infinite;
 }
 .tp-idle .tp-bob {
   animation: tp-bob 3.2s ease-in-out infinite;
 }
-.group:is(:hover, :focus-visible) .tp-bob-1 {
+.group:is(:hover, :focus-visible, :has(:focus-visible)) .tp-bob-1 {
   animation-delay: 0.15s;
 }
-.group:is(:hover, :focus-visible) .tp-bob-2 {
+.group:is(:hover, :focus-visible, :has(:focus-visible)) .tp-bob-2 {
   animation-delay: 0.3s;
 }
 .tp-idle .tp-bob-1 {

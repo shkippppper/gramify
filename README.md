@@ -6,7 +6,7 @@ A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor 
   - Monaco editor with Mermaid highlighting and completions, plus a JSON config editor with schema validation
   - Live preview with pan and zoom, a hand-drawn mode, a dot grid, and dark mode
   - Sequence diagram participants stay pinned to the top of the preview while you scroll down
-  - All 34 sample diagram families
+  - All 31 diagram types as samples, each with its own illustration (the four Railroad notations share one)
   - Export to PNG, SVG, the clipboard, or `.mmd`
   - mermaid.live link import and export
 - **Multiplayer:**

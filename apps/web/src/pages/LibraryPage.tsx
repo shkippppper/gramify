@@ -26,11 +26,11 @@ import { SAMPLE_FAMILIES } from '../editor/samples';
 import { Illustration } from '../components/Illustration';
 import { DiagramCard, type CardActions } from '../library/DiagramCard';
 import { NewBoardDialog } from '../library/NewBoardDialog';
+import { DiagramArt } from '../library/DiagramArt';
 import { TemplateArt } from '../library/TemplateArt';
 import { BOARD_TEMPLATES } from '../library/templates';
 import { VersionBadge } from '../version/VersionBadge';
 import { DND_TYPE, Sidebar } from '../library/Sidebar';
-import { Thumbnail } from '../library/Thumbnail';
 import {
   quotaMessage,
   useDiagrams,
@@ -775,27 +775,52 @@ export function LibraryPage() {
           </h3>
           <div className="tp-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {SAMPLE_FAMILIES.map((fam, i) => (
-              <button
+              <div
                 key={fam.name}
-                type="button"
                 style={stagger(i + BOARD_TEMPLATES.length)}
-                className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border text-left focus-visible:outline-none"
-                onClick={() => {
-                  setSamplesOpen(false);
-                  create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
-                }}
+                data-family={fam.id}
+                className="group tp-lift flex min-w-0 flex-col overflow-hidden rounded-lg border border-border"
               >
-                <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-white">
-                  <Thumbnail
-                    code={fam.examples[0]!.code}
-                    config="{}"
-                    className="tp-bob absolute inset-2"
-                  />
-                </span>
-                <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
-                  {fam.name}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  title={fam.description || fam.name}
+                  className="flex min-w-0 flex-col text-left focus-visible:outline-none"
+                  onClick={() => {
+                    setSamplesOpen(false);
+                    create.mutate({ code: fam.examples[0]!.code, title: fam.examples[0]!.title });
+                  }}
+                >
+                  <span className="relative block aspect-[4/3] min-h-0 overflow-hidden bg-surface-2">
+                    <span className="absolute inset-0 grid place-items-center">
+                      <DiagramArt id={fam.id} />
+                    </span>
+                  </span>
+                  <span className="truncate border-t border-border px-2 py-1.5 text-xs font-medium">
+                    {fam.name}
+                  </span>
+                </button>
+                {fam.variants && (
+                  <span
+                    className="flex flex-wrap gap-1 px-2 pb-2"
+                    role="group"
+                    aria-label={`${fam.name} notation`}
+                  >
+                    {fam.variants.map((v) => (
+                      <button
+                        key={v.label}
+                        type="button"
+                        className="rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted transition-colors hover:border-accent hover:text-accent focus-visible:border-accent focus-visible:outline-none"
+                        onClick={() => {
+                          setSamplesOpen(false);
+                          create.mutate({ code: v.example.code, title: v.example.title });
+                        }}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </div>
             ))}
           </div>
         </div>

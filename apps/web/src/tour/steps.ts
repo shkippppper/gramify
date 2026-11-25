@@ -39,7 +39,7 @@ export const TOURS: Record<TourName, TourStep[]> = {
       id: 'create',
       target: 'new-diagram',
       title: 'Create a board',
-      body: 'New diagram makes a board. The arrow next to it also lets you start from one of 34 sample diagrams, import a mermaid.live link or Mermaid code, or upload a .mmd / .md file.',
+      body: 'New diagram makes a board. The arrow next to it also lets you start from one of 31 diagram types, import a mermaid.live link or Mermaid code, or upload a .mmd / .md file.',
       since: 1,
     },
     {

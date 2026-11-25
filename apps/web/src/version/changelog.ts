@@ -16,6 +16,16 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.7.0',
+    date: '2026-11-25',
+    title: 'An illustration for every diagram type',
+    changes: [
+      'Every diagram type in the sample gallery has its own illustration, in the same style as Most used, with no small text to squint at.',
+      'The four Railroad notations (IR, EBNF, ABNF, PEG) are one Railroad tile; pick the notation on the tile.',
+      'The editor’s Sample diagrams panel shows a small icon next to each type.',
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-11-24',
     title: 'Most used samples',

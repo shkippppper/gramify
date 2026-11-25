@@ -145,7 +145,7 @@ function MermaidArt({ arrow }: { arrow: string }) {
   );
 }
 
-function C4Art({ arrow }: { arrow: string }) {
+export function C4Art({ arrow }: { arrow: string }) {
   return (
     <>
       {/* A person… */}

@@ -28,6 +28,15 @@ test('new board picker: Enter makes an empty board; Escape cancels; samples link
     'C4 architecture',
     'BPMN process',
   ]);
+  // Every diagram type has an illustration; Railroad offers its notations.
+  await expect(gallery.locator('[data-family] svg[data-art]').first()).toBeVisible();
+  await expect(gallery.locator('[data-family=railroad]').getByRole('button')).toHaveText([
+    'Railroad',
+    'IR',
+    'EBNF',
+    'ABNF',
+    'PEG',
+  ]);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-tour=board-card]')).toHaveCount(0);
 

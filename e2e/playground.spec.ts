@@ -27,6 +27,22 @@ test('every sample diagram renders', async ({ page }) => {
       { timeout: 15_000 },
     );
   }
+
+  // The four railroad notations share one Railroad entry: check each of its examples too.
+  await page.getByRole('button', { name: 'More Railroad examples' }).click();
+  const railroad = page.getByRole('button', { name: /^(IR|EBNF|ABNF|PEG) · / });
+  const n = await railroad.count();
+  expect(n).toBeGreaterThanOrEqual(4);
+  for (let i = 0; i < n; i++) {
+    if (i > 0) await page.getByRole('button', { name: 'More Railroad examples' }).click();
+    const name = await railroad.nth(i).textContent();
+    await railroad.nth(i).click();
+    await expect(page.getByTestId('error-bar'), `railroad ${name}`).toHaveCount(0);
+    await expect(page.locator('[data-testid=diagram].opacity-50'), `railroad ${name}`).toHaveCount(
+      0,
+      { timeout: 15_000 },
+    );
+  }
 });
 
 test('exports PNG and SVG', async ({ page }) => {
