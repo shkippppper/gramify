@@ -245,6 +245,30 @@ body {
 .tp-idle .tp-bob-2 {
   animation-delay: 1.2s;
 }
+/* Linked shapes (see render/linkShapes.ts): pointer, a glow on hover, and a link badge. */
+.tp-linked {
+  cursor: pointer;
+}
+.tp-linked:hover {
+  filter: drop-shadow(0 0 3px var(--tp-accent));
+}
+.tp-link-badge {
+  pointer-events: none;
+}
+.tp-link-badge circle {
+  fill: var(--tp-accent);
+  stroke: var(--tp-surface);
+  stroke-width: 1.5;
+}
+.tp-link-badge path {
+  fill: none;
+  stroke: var(--tp-accent-fg);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.tp-link-broken .tp-link-badge circle {
+  fill: var(--tp-muted);
+}
 /* Page content eases in on navigation. */
 .tp-page {
   animation: tp-fade 220ms ease-out;

@@ -415,6 +415,114 @@ export function Menu({
   );
 }
 
+/**
+ * A menu at a point (right-click). Closes on Escape, a click elsewhere, scrolling or resizing.
+ */
+export function ContextMenu({
+  x,
+  y,
+  items,
+  onClose,
+  label,
+}: {
+  x: number;
+  y: number;
+  items: Array<MenuItem | 'separator' | { header: ReactNode }>;
+  onClose: () => void;
+  label?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useLayoutEffect(() => {
+    const m = ref.current;
+    if (!m) return;
+    const { width, height } = m.getBoundingClientRect();
+    setPos({
+      left: Math.max(8, Math.min(x, window.innerWidth - width - 8)),
+      top: Math.max(8, y + height > window.innerHeight - 8 ? y - height : y),
+    });
+  }, [x, y]);
+  useEffect(() => {
+    ref.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not([disabled])')?.focus();
+    const close = () => onCloseRef.current();
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', close);
+    window.addEventListener('wheel', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('wheel', close);
+    };
+  }, []);
+  return createPortal(
+    <div
+      ref={ref}
+      role="menu"
+      aria-label={label}
+      onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={(e) => {
+        const list = [
+          ...(ref.current?.querySelectorAll<HTMLButtonElement>('[role=menuitem]:not([disabled])') ??
+            []),
+        ];
+        const i = list.indexOf(document.activeElement as HTMLButtonElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const n = list.length;
+          list[(i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n]?.focus();
+        } else if (e.key === 'Tab') onClose();
+      }}
+      style={{
+        position: 'fixed',
+        top: pos?.top ?? y,
+        left: pos?.left ?? x,
+        visibility: pos ? 'visible' : 'hidden',
+      }}
+      className="tp-pop z-[60] min-w-48 origin-top-left rounded-lg border border-border bg-surface p-1 shadow-lg"
+    >
+      {items.map((it, i) =>
+        it === 'separator' ? (
+          <div key={i} role="separator" className="my-1 h-px bg-border" />
+        ) : 'header' in it ? (
+          <MenuHeader key={i}>{it.header}</MenuHeader>
+        ) : (
+          <button
+            key={i}
+            role="menuitem"
+            type="button"
+            tabIndex={-1}
+            disabled={it.disabled}
+            onClick={() => {
+              onClose();
+              it.onSelect();
+            }}
+            className={clsx(
+              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors disabled:opacity-40',
+              it.danger
+                ? 'text-danger hover:bg-danger/10 focus:bg-danger/10'
+                : 'text-fg hover:bg-surface-2 focus:bg-surface-2',
+            )}
+          >
+            {it.icon && <span className="text-muted">{it.icon}</span>}
+            {it.label}
+          </button>
+        ),
+      )}
+    </div>,
+    document.body,
+  );
+}
+
 /** Non-interactive header row for menus (e.g. the signed-in account). */
 export function MenuHeader({ children }: { children: ReactNode }) {
   return <div className="px-2 py-1.5 text-sm">{children}</div>;

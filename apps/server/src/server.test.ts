@@ -587,3 +587,43 @@ describe('display names', () => {
     );
   });
 });
+
+describe('links between boards', () => {
+  it('lists backlinks you can open, and who cannot reach a linked board', async () => {
+    const ada = await signIn('ada@example.com', 'Ada Lovelace');
+    const grace = await signIn('grace@example.com', 'Grace Hopper');
+    const eve = await signIn('eve@example.com', 'Eve');
+    const target = (await ada.call('POST', '/diagrams', { title: 'Payment worker' })).body;
+    const code = `sequenceDiagram\n  participant Worker\n%% link Worker -> Payment worker #${target.id}\n`;
+    const source = (await ada.call('POST', '/diagrams', { title: 'Checkout', code })).body;
+    // Mentions the id outside a link line: not a backlink.
+    await ada.call('POST', '/diagrams', {
+      title: 'Notes',
+      code: `graph TD\n  A["${target.id}"]\n`,
+    });
+    // Eve's own board links to it too, but Ada can't see Eve's board.
+    await eve.call('POST', '/diagrams', { title: 'Eve', code });
+
+    const back = await ada.call('GET', `/diagrams/${target.id}/backlinks`);
+    expect(back.status).toBe(200);
+    expect(back.body.map((d: { title: string }) => d.title)).toEqual(['Checkout']);
+    expect((await eve.call('GET', `/diagrams/${target.id}/backlinks`)).status).toBe(404);
+
+    // Grace is on Checkout but not on Payment worker.
+    await ada.call('POST', `/diagrams/${source.id}/members`, { email: 'grace@example.com' });
+    const reach = await ada.call('GET', `/diagrams/${target.id}/link-reach?from=${source.id}`);
+    expect(reach.body.missing).toEqual([{ email: 'grace@example.com', name: 'Grace Hopper' }]);
+    // Only the linked board's owner may ask.
+    expect(
+      (await grace.call('GET', `/diagrams/${target.id}/link-reach?from=${source.id}`)).status,
+    ).toBe(404);
+    // Once shared, nobody is missing.
+    await ada.call('POST', `/diagrams/${target.id}/members`, {
+      email: 'grace@example.com',
+      role: 'viewer',
+    });
+    expect(
+      (await ada.call('GET', `/diagrams/${target.id}/link-reach?from=${source.id}`)).body.missing,
+    ).toEqual([]);
+  });
+});

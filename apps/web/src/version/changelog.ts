@@ -16,6 +16,17 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.9.0',
+    date: '2026-11-25',
+    title: 'Links between boards',
+    changes: [
+      'Right-click a shape (participant, node…) → “Link to board…”: clicking it then opens that board in a new tab. Links can also point to any web page.',
+      'Links are %% link comment lines, so the code still works in any Mermaid tool.',
+      'Linked shapes get a badge and a hover card; the Links menu shows outgoing links and the boards that link here.',
+      'If a teammate can’t open a linked board they’re told why, and its owner can share it right from the card. Exported SVGs keep links clickable.',
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-11-25',
     title: 'Empty, Sequence, C4, BPMN',

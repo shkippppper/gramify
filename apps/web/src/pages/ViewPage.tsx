@@ -1,5 +1,7 @@
 import { deserializeState } from '@gramify/shared';
 import { useMemo } from 'react';
+import { LinkCard } from '../links/LinkCard';
+import { useResolvedLinks } from '../links/useLinks';
 import { useTheme } from '../lib/theme';
 import { Preview } from '../render/Preview';
 import { useDiagramRender } from '../render/useDiagramRender';
@@ -7,6 +9,7 @@ import { useDiagramRender } from '../render/useDiagramRender';
 export function DiagramView({ code, config }: { code: string; config: string }) {
   const { dark } = useTheme();
   const { result, error } = useDiagramRender(code, config, dark);
+  const links = useResolvedLinks(code);
   return (
     <div className="h-full">
       {error && !result ? (
@@ -21,6 +24,8 @@ export function DiagramView({ code, config }: { code: string; config: string }) 
           rough={false}
           grid={false}
           chrome={false}
+          links={links}
+          linkCard={(i) => (links[i] ? <LinkCard link={links[i]} /> : null)}
         />
       )}
     </div>

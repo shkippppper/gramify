@@ -11,9 +11,12 @@ import {
   type ReactNode,
   type Ref,
 } from 'react';
+import { createPortal } from 'react-dom';
 import svgPanZoom from 'svg-pan-zoom';
 import { IconButton } from '../components/ui';
 import { throttleTrailing } from '../lib/throttle';
+import { wellFormedSvg } from './export';
+import { decorateLinks, linkKeyFor, linkifySvgMarkup, shapeAt, type ShapeLink } from './linkShapes';
 import { elementsForLine } from './locate';
 import { VersionBadge } from '../version/VersionBadge';
 import { MERMAID_VERSION } from './mermaid';
@@ -75,6 +78,12 @@ interface Props {
   highlight?: { code: string; line: number } | null;
   /** Hide toolbars (embed / view mode). */
   chrome?: boolean;
+  /** `%% link` lines: their shapes get a badge and open the link on click. */
+  links?: ShapeLink[];
+  /** Hover card for the link at this index. */
+  linkCard?: (index: number) => ReactNode;
+  /** Right-click on a shape: `key` names it for a link line, `linkIndex` if it is linked. */
+  onShapeMenu?: (e: { key: string | null; linkIndex: number | null; x: number; y: number }) => void;
 }
 
 export function Preview({
@@ -93,6 +102,9 @@ export function Preview({
   onElementClick,
   highlight,
   chrome = true,
+  links,
+  linkCard,
+  onShapeMenu,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -167,7 +179,17 @@ export function Preview({
   );
 
   getViewRef.current = getView;
-  useImperativeHandle(ref, () => ({ getExportSvg: () => exportRef.current, getView, setView }), [
+  const linksRef = useRef(links);
+  linksRef.current = links;
+  const getExportSvg = useCallback(() => {
+    const markup = exportRef.current;
+    // Exports keep links clickable.
+    return markup && linksRef.current?.some((l) => l.href)
+      ? linkifySvgMarkup(wellFormedSvg(markup), linksRef.current)
+      : markup;
+  }, []);
+  useImperativeHandle(ref, () => ({ getExportSvg, getView, setView }), [
+    getExportSvg,
     getView,
     setView,
   ]);
@@ -367,6 +389,33 @@ export function Preview({
   const onElementClickRef = useRef(onElementClick);
   onElementClickRef.current = onElementClick;
 
+  // ---- links: badge + click-to-open + hover card ----
+  useEffect(() => {
+    const s = svgElRef.current;
+    if (s) decorateLinks(s, links ?? []);
+  }, [placed, links]);
+  const pressAt = useRef<{ x: number; y: number } | null>(null);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [hoverLink, setHoverLink] = useState<{ index: number; rect: DOMRect } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const linkElAt = (target: EventTarget | null) => {
+    const el = (target as Element | null)?.closest?.('[data-tp-link]');
+    return el && svgElRef.current?.contains(el) ? el : null;
+  };
+  const hideHoverSoon = () => {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoverLink(null), 250);
+  };
+  useEffect(
+    () => () => {
+      clearTimeout(hoverTimer.current);
+      clearTimeout(clickTimer.current);
+    },
+    [],
+  );
+  // A new diagram or pan/zoom moves the shapes: drop the card.
+  useEffect(() => setHoverLink(null), [placed, links]);
+
   /** Briefly outline the shape that was clicked. */
   const pick = (target: Element) => {
     const shape =
@@ -396,8 +445,56 @@ export function Preview({
       }}
       onPointerDown={(e) => {
         downAt.current = { x: e.clientX, y: e.clientY };
+        pressAt.current = { x: e.clientX, y: e.clientY };
+        setHoverLink(null);
+      }}
+      onPointerOver={(e) => {
+        if (!linkCard) return;
+        const el = linkElAt(e.target);
+        if (!el) return;
+        clearTimeout(hoverTimer.current);
+        const index = Number(el.getAttribute('data-tp-link'));
+        hoverTimer.current = setTimeout(
+          () => setHoverLink({ index, rect: el.getBoundingClientRect() }),
+          350,
+        );
+      }}
+      onPointerOut={(e) => {
+        if (!linkCard) return;
+        const from = linkElAt(e.target);
+        if (from && from !== linkElAt(e.relatedTarget)) hideHoverSoon();
+      }}
+      onWheel={() => setHoverLink(null)}
+      onClick={(e) => {
+        // A single click on a linked shape opens it in a new tab. Wait a moment so a
+        // double-click (jump to code) can cancel it; ignore the end of a drag.
+        clearTimeout(clickTimer.current);
+        const start = pressAt.current;
+        if (e.detail > 1 || !start) return;
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) return;
+        const el = linkElAt(e.target);
+        const href = el ? linksRef.current?.[Number(el.getAttribute('data-tp-link'))]?.href : null;
+        if (!href) return;
+        clickTimer.current = setTimeout(() => window.open(href, '_blank', 'noopener'), 250);
+      }}
+      onContextMenu={(e) => {
+        const svgEl = svgElRef.current;
+        const target = e.target as Element;
+        if (!onShapeMenu || !svgEl || !svgEl.contains(target)) return;
+        const shape = shapeAt(target, svgEl);
+        if (!shape) return;
+        e.preventDefault();
+        setHoverLink(null);
+        const linked = shape.closest('[data-tp-link]');
+        onShapeMenu({
+          key: linkKeyFor(shape, svgEl),
+          linkIndex: linked ? Number(linked.getAttribute('data-tp-link')) : null,
+          x: e.clientX,
+          y: e.clientY,
+        });
       }}
       onDoubleClick={(e) => {
+        clearTimeout(clickTimer.current);
         const handler = onElementClickRef.current;
         const svgEl = svgElRef.current;
         const start = downAt.current;
@@ -438,6 +535,38 @@ export function Preview({
           {overlay({ toNormalized, fromNormalized, version })}
         </div>
       )}
+      {hoverLink &&
+        linkCard &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-label="Linked board"
+            className="tp-pop fixed z-[55] overflow-hidden rounded-lg border border-border bg-surface shadow-xl"
+            style={
+              hoverLink.rect.bottom + 8 + 260 < window.innerHeight
+                ? {
+                    top: hoverLink.rect.bottom + 8,
+                    left: Math.max(8, Math.min(hoverLink.rect.left, window.innerWidth - 300)),
+                  }
+                : {
+                    bottom: window.innerHeight - hoverLink.rect.top + 8,
+                    left: Math.max(8, Math.min(hoverLink.rect.left, window.innerWidth - 300)),
+                  }
+            }
+            onPointerEnter={() => clearTimeout(hoverTimer.current)}
+            onPointerLeave={hideHoverSoon}
+            // React events bubble out of portals: keep the card's own clicks away from the
+            // preview (which would close it, or open the link).
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+          >
+            {linkCard(hoverLink.index)}
+          </div>,
+          document.body,
+        )}
       {renderError && (
         <div className="absolute left-3 top-3 rounded bg-danger/10 px-2 py-1 text-xs text-danger">
           {renderError}

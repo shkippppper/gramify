@@ -2,6 +2,7 @@ import {
   DEFAULT_CODE,
   DEFAULT_CONFIG,
   YDOC,
+  linkedBoardIds,
   type DiagramMember,
   type DiagramRole,
   type DiagramSummary,
@@ -381,6 +382,58 @@ export const diagrams = new Hono<AppEnv>()
       .where('diagram_id', '=', id)
       .execute();
     return c.body(null, 204);
+  })
+
+  // ---- Links between boards ----
+  // Boards you can open whose code links to this one (`%% link … -> … #<id>`).
+  .get('/:id/backlinks', async (c) => {
+    const id = assertUuid(c.req.param('id'));
+    const me = c.get('user');
+    await requireRole(id, me, 'viewer');
+    const rows = (await baseQuery(me)
+      .where('d.deleted_at', 'is', null)
+      .where('d.id', '!=', id)
+      .where('d.code_text', 'ilike', `%${id}%`)
+      .orderBy('d.updated_at', 'desc')
+      .limit(100)
+      .execute()) as Row[];
+    return c.json(rows.filter((r) => linkedBoardIds(r.code_text).includes(id)).map(toSummary));
+  })
+  // For the owner of a linked board: who can open the linking board (`from`) but not this one.
+  .get('/:id/link-reach', async (c) => {
+    const id = assertUuid(c.req.param('id'));
+    const from = assertUuid(c.req.query('from') ?? '');
+    const me = c.get('user');
+    await requireRole(id, me, 'owner');
+    await requireRole(from, me, 'viewer');
+    const people = async (diagramId: string) => {
+      const owner = await db
+        .selectFrom('diagram as d')
+        .innerJoin('user as u', 'u.id', 'd.owner_id')
+        .select(['u.email'])
+        .where('d.id', '=', diagramId)
+        .executeTakeFirst();
+      const members = await listMembers(diagramId);
+      return new Map<string, string | null>([
+        ...(owner ? ([[owner.email.toLowerCase(), null]] as const) : []),
+        ...members.map((m) => [m.email.toLowerCase(), m.user?.name ?? null] as const),
+      ]);
+    };
+    const [source, target] = await Promise.all([people(from), people(id)]);
+    const missing = [...source]
+      .filter(([email]) => !target.has(email))
+      .map(([email, name]) => ({ email, name }));
+    // Owners' names come from the user table too.
+    for (const p of missing) {
+      if (p.name) continue;
+      const u = await db
+        .selectFrom('user')
+        .select('name')
+        .where(sql`lower(email)`, '=', p.email)
+        .executeTakeFirst();
+      p.name = u?.name ?? null;
+    }
+    return c.json({ missing });
   })
 
   // ---- Members: only the owner can add, change or remove people ----

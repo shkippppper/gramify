@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { BookOpen } from 'lucide-react';
+import { formatBoardLink } from '@gramify/shared';
+import { BookOpen, ExternalLink, Link2, Unlink } from 'lucide-react';
 import {
   useCallback,
   useMemo,
@@ -11,7 +12,11 @@ import {
 } from 'react';
 import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
 import { replaceText, useYText, type DiagramSession } from '../collab/session';
-import { Collapsible, Dialog, Button, Tabs } from '../components/ui';
+import { Collapsible, ContextMenu, Dialog, Button, Tabs, type MenuItem } from '../components/ui';
+import { LinkBoardDialog, type LinkChoice } from '../links/LinkBoardDialog';
+import { LinkCard } from '../links/LinkCard';
+import { writeLinkLine } from '../links/edit';
+import { useResolvedLinks } from '../links/useLinks';
 import { useTheme } from '../lib/theme';
 import { useLocalState } from '../lib/useLocalState';
 import { docsUrlFor } from '../render/mermaid';
@@ -41,6 +46,8 @@ interface Props {
   onUserView?: (view: SharedView, byUser: boolean) => void;
   overlay?: (api: PreviewApi) => ReactNode;
   editorOverlay?: ReactNode;
+  /** The board being edited (for link hover cards and the link picker). */
+  boardId?: string;
 }
 
 const mobileQuery = typeof window !== 'undefined' ? matchMedia('(max-width: 639px)') : null;
@@ -129,6 +136,66 @@ export function EditorWorkspace(props: Props) {
     () => (!previewOverride && cursorLine ? { code: liveCode, line: cursorLine } : null),
     [previewOverride, cursorLine, liveCode],
   );
+  // ---- links between boards (`%% link` lines) ----
+  const links = useResolvedLinks(code);
+  const [shapeMenu, setShapeMenu] = useState<{
+    key: string | null;
+    linkIndex: number | null;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [linking, setLinking] = useState<{ key: string; line?: number } | null>(null);
+  const canEditLinks = !session.readOnly && !previewOverride;
+  const linkCard = useCallback(
+    (i: number) => (links[i] ? <LinkCard link={links[i]} sourceId={props.boardId} /> : null),
+    [links, props.boardId],
+  );
+  const shapeMenuItems = (): MenuItem[] => {
+    if (!shapeMenu) return [];
+    const link = shapeMenu.linkIndex != null ? links[shapeMenu.linkIndex] : undefined;
+    const key = shapeMenu.key;
+    const items: MenuItem[] = [];
+    if (link?.href)
+      items.push({
+        label: link.kind === 'url' ? 'Open link' : 'Open linked board',
+        icon: <ExternalLink size={14} />,
+        onSelect: () => window.open(link.href!, '_blank', 'noopener'),
+      });
+    if (canEditLinks && key)
+      items.push({
+        label: link ? 'Change link…' : 'Link to board…',
+        icon: <Link2 size={14} />,
+        onSelect: () => setLinking({ key, line: link?.line }),
+      });
+    if (canEditLinks && link)
+      items.push({
+        label: 'Remove link',
+        icon: <Unlink size={14} />,
+        danger: true,
+        onSelect: () => {
+          writeLinkLine(session.code, null, link.line);
+          toast.success('Link removed');
+        },
+      });
+    return items;
+  };
+  const onLinkPicked = (choice: LinkChoice) => {
+    if (!linking) return;
+    const { key } = linking;
+    const text =
+      choice.kind === 'board' ? formatBoardLink(key, choice) : `%% link ${key} -> ${choice.url}`;
+    // Replace the shape's existing link line, if any.
+    const line = linking.line ?? links.find((l) => l.shape === key)?.line;
+    writeLinkLine(session.code, text, line);
+    setLinking(null);
+    toast.success(
+      `Linked “${key}” to ${choice.kind === 'board' ? `“${choice.title}”` : 'the web page'}`,
+      {
+        description: 'Click the shape to open it. The link is the %% link line in the code.',
+      },
+    );
+  };
+
   const revealRange = useCallback((r: CodeRange) => {
     const ed = editorRef.current;
     const model = ed?.getModel();
@@ -296,6 +363,9 @@ export function EditorWorkspace(props: Props) {
       overlay={props.overlay}
       onElementClick={previewOverride ? undefined : jumpToCode}
       highlight={highlight}
+      links={links}
+      linkCard={linkCard}
+      onShapeMenu={setShapeMenu}
     />
   );
 
@@ -371,6 +441,22 @@ export function EditorWorkspace(props: Props) {
           Ctrl+Z in the editor).
         </p>
       </Dialog>
+      {shapeMenu && shapeMenuItems().length > 0 && (
+        <ContextMenu
+          x={shapeMenu.x}
+          y={shapeMenu.y}
+          label="Shape"
+          items={shapeMenuItems()}
+          onClose={() => setShapeMenu(null)}
+        />
+      )}
+      <LinkBoardDialog
+        open={!!linking}
+        shape={linking?.key ?? ''}
+        currentBoardId={props.boardId}
+        onClose={() => setLinking(null)}
+        onPick={onLinkPicked}
+      />
     </div>
   );
 }

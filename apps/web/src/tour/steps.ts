@@ -25,7 +25,7 @@ export interface TourStep {
 export type TourName = 'library' | 'editor';
 
 /** Bump when steps are added; equals the highest `since` below. */
-export const TOUR_VERSION = 4;
+export const TOUR_VERSION = 5;
 
 export const TOURS: Record<TourName, TourStep[]> = {
   library: [
@@ -162,6 +162,13 @@ export const TOURS: Record<TourName, TourStep[]> = {
       title: 'Work together',
       body: 'When teammates join, their avatars appear here and you see their cursors in the code and their pointers on the diagram. Click an avatar to follow their view.',
       since: 1,
+    },
+    {
+      id: 'links',
+      target: 'links',
+      title: 'Link boards together',
+      body: 'Right-click a shape (a participant, a node…) and choose “Link to board…”. Clicking it then opens that board in a new tab. This menu lists where this board links to and which boards link here.',
+      since: 5,
     },
     {
       id: 'history',

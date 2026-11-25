@@ -76,6 +76,14 @@ export const api = {
   restoreDiagram: (id: string) => request<DiagramSummary>('POST', `/diagrams/${id}/restore`),
   star: (id: string, on: boolean) => request<void>(on ? 'PUT' : 'DELETE', `/diagrams/${id}/star`),
 
+  backlinks: (id: string) => request<DiagramSummary[]>('GET', `/diagrams/${id}/backlinks`),
+  /** For the owner of `id`: people who can open board `from` but not `id`. */
+  linkReach: (id: string, from: string) =>
+    request<{ missing: { email: string; name: string | null }[] }>(
+      'GET',
+      `/diagrams/${id}/link-reach?from=${from}`,
+    ),
+
   listMembers: (id: string) => request<DiagramMember[]>('GET', `/diagrams/${id}/members`),
   addMember: (id: string, email: string, role: MemberRole) =>
     request<DiagramMember[]>('POST', `/diagrams/${id}/members`, { email, role }),

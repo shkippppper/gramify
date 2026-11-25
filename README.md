@@ -16,6 +16,13 @@ A self-hosted, real-time collaborative [Mermaid](https://mermaid.js.org) editor 
   - Avatars of who is here, and a follow mode
   - The diagram title updates live for everyone
   - Undo only undoes your own changes
+- **Links between boards:** right-click a shape in the preview → “Link to board…” to make it open another board (or a web page) in a new tab. The link is a Mermaid comment, so the code still works everywhere:
+  ```
+  %% link Worker -> Payment worker /d/<board id>
+  %% link Worker -> Payment worker          (by title)
+  %% link Docs -> https://example.com/runbook
+  ```
+  `Worker` is a participant / node id or its label. Linked shapes get a badge and a hover card; the **Links** menu shows outgoing links and backlinks; teammates who can't open a linked board see why, and its owner can share it from the card; exported SVGs keep the links.
 - **Versions and release notes:** the app version sits in the bottom-right corner; click it for what's new in each release. Releases are tagged `vX.Y.Z` in git (see CONTRIBUTING).
 - **New-board picker:** “New diagram” asks where to start: Empty (press Enter), Sequence, C4 or BPMN (a process with swimlanes, drawn as a Mermaid flowchart). The same four lead the sample gallery as Most used, and “Browse all samples” opens every diagram type.
 - **Guided tour:** a spotlight tour of the library and the editor for first-time visitors, with "Don't show this again", replay from the account menu, and a short "What's new" tour when features are added. Double-click a shape in the preview to jump to its code.

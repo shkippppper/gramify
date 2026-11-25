@@ -26,6 +26,7 @@ import { Button, Menu, Spinner } from '../components/ui';
 import { EditorWorkspace } from '../editor/EditorWorkspace';
 import type { monaco } from '../editor/monaco';
 import { HistoryPanel } from '../history/HistoryPanel';
+import { LinksMenu } from '../links/LinksMenu';
 import { api, ApiError } from '../lib/api';
 import { FullPageSpinner, useMe } from '../lib/auth';
 import { TourHost } from '../tour/Tour';
@@ -315,6 +316,7 @@ export function DiagramPage() {
               <>
                 <PresenceAvatars session={session} following={following} onFollow={setFollowing} />
                 <ShareMenu id={d.id} session={session} onManage={() => setShareOpen(true)} />
+                <LinksMenu diagramId={d.id} session={session} />
                 <Button
                   size="sm"
                   variant={historyOpen ? 'secondary' : 'ghost'}
@@ -420,6 +422,7 @@ function DiagramWorkspace({
   return (
     <EditorWorkspace
       session={session}
+      boardId={diagramId}
       title={liveTitle}
       header={header}
       side={side}
